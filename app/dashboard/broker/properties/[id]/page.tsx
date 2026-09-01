@@ -173,22 +173,23 @@ export default function BrokerPropertyDetailPage() {
   if (!property) return <ErrorState message="Property not found" />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--zcanopy-card-brown)]">{property.title}</h2>
-          <p className="text-gray-500">{property.propertyType} • {property.location}</p>
+          <p className="zc-kicker">{property.propertyType}</p>
+          <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">{property.title}</h2>
+          <p className="mt-1 text-[var(--zcanopy-muted)]">{property.location}</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => setEditing(!editing)}
-            className="rounded-xl bg-[var(--zcanopy-primary)] px-4 py-2 text-sm text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)]"
+            className="rounded-xl bg-[var(--zcanopy-primary)] px-5 py-2.5 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)]"
           >
             {editing ? 'Cancel Edit' : 'Edit Property'}
           </button>
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="rounded-xl bg-red-600 px-4 py-2 text-sm text-white shadow-md transition-all hover:bg-red-700"
+            className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-rose-800 transition-all hover:bg-rose-100"
           >
             Delete
           </button>

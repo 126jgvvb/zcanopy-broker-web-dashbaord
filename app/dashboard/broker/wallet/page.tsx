@@ -176,28 +176,28 @@ export default function BrokerWalletPage() {
         </Panel>
 
         <Panel title="Recent Transactions" action={<span className="text-xs text-gray-400">Last {transactions.length} records</span>}>
-          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50/60">
+          <div className="zc-table-wrap">
+            <table className="zc-table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Amount</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Reason</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Date</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Reason</th>
+                  <th>Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {transactions.map((tx) => (
-                  <tr key={tx.id} className="transition-colors hover:bg-gray-50/60">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-[var(--zcanopy-card-brown)] capitalize">{tx.type}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">UGX {tx.amount.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{tx.reason}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                  <tr key={tx.id}>
+                    <td className="zc-table-primary capitalize">{tx.type}</td>
+                    <td className="zc-table-muted">UGX {tx.amount.toLocaleString()}</td>
+                    <td className="zc-table-muted" style={{ whiteSpace: 'normal' }}>{tx.reason}</td>
+                    <td className="zc-table-muted">{new Date(tx.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
                 {transactions.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
+                    <td colSpan={4} className="zc-table-empty">
                       No transactions yet.
                     </td>
                   </tr>

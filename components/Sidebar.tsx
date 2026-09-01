@@ -68,21 +68,23 @@ export default function Sidebar({ role, user, onLogout, isOpen, onToggle }: Side
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onToggle} />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200/50 bg-[var(--zcanopy-card-brown)] text-white shadow-xl transition-transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-[var(--zcanopy-card-brown)] text-white shadow-2xl transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between px-6 py-6">
+        <div className="relative overflow-hidden px-5 py-6">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-[var(--zcanopy-accent-gold)]/20 blur-2xl" />
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl font-bold text-lg shadow-lg"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl font-[family-name:var(--font-cormorant)] text-2xl font-semibold shadow-lg"
               style={{ backgroundColor: COLORS.accentGold, color: COLORS.cardBrown }}
             >
               Z
             </span>
             <div>
-              <span className="text-lg font-bold tracking-tight">ZCanopy</span>
-              <span className="block text-[10px] uppercase tracking-widest text-white/60">
+              <span className="font-[family-name:var(--font-cormorant)] text-2xl leading-none">ZCanopy</span>
+              <span className="mt-1 block text-[10px] uppercase tracking-[0.18em] text-white/55">
                 {isBroker ? "Broker" : "Customer"} Console
               </span>
             </div>
@@ -93,6 +95,7 @@ export default function Sidebar({ role, user, onLogout, isOpen, onToggle }: Side
           >
             <X className="h-4 w-4" />
           </button>
+          </div>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-2">
@@ -105,7 +108,7 @@ export default function Sidebar({ role, user, onLogout, isOpen, onToggle }: Side
             <Link
               key={item.href}
               href={item.href}
-              className="hover-gold flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all"
+              className="hover-gold flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm tracking-wide text-white/85 transition-all"
                 style={{
                   backgroundColor: active ? COLORS.accentGold : "transparent",
                   color: active ? COLORS.cardBrown : undefined,

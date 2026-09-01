@@ -126,15 +126,16 @@ export default function BrokerPropertiesPage() {
   if (error) return <ErrorState message={error} />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--zcanopy-card-brown)]">My Properties</h2>
-          <p className="text-gray-500">Manage your listings.</p>
+          <p className="zc-kicker">Listings</p>
+          <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">My Properties</h2>
+          <p className="mt-1 text-[var(--zcanopy-muted)]">Manage and refine your portfolio.</p>
         </div>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="rounded-xl bg-[var(--zcanopy-primary)] px-4 py-2 text-sm text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)]"
+          className="rounded-xl bg-[var(--zcanopy-primary)] px-5 py-2.5 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)]"
         >
           {showCreate ? 'Cancel' : 'Add Property'}
         </button>
@@ -142,9 +143,9 @@ export default function BrokerPropertiesPage() {
 
       {showCreate && (
         <Panel title="Add New Property">
-          <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm font-medium text-gray-700">Current Plan: <span className="font-bold" style={{ color: COLORS.primary }}>{tier.name.toUpperCase()}</span></p>
-            <p className="mt-1 text-xs text-gray-500">
+          <div className="mb-4 rounded-2xl border border-[var(--zcanopy-border)] bg-[color-mix(in_srgb,var(--zcanopy-accent-gold)_10%,transparent)] p-4">
+            <p className="text-sm font-medium text-[var(--zcanopy-card-brown)]">Current Plan: <span className="font-semibold tracking-wide" style={{ color: COLORS.primary }}>{tier.name.toUpperCase()}</span></p>
+            <p className="mt-1 text-xs text-[var(--zcanopy-muted)]">
               Photos: {photos.length}/{tier.limits.maxPhotosPerProperty} • Videos: {video ? '1' : '0'}/{tier.limits.maxVideosPerProperty} • Max video size: {tier.limits.maxVideoSizeMB}MB
             </p>
           </div>
@@ -156,7 +157,7 @@ export default function BrokerPropertiesPage() {
                   type="text"
                   value={createForm.title}
                   onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                  className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
                   required
                 />
               </div>
@@ -165,7 +166,7 @@ export default function BrokerPropertiesPage() {
                 <select
                   value={createForm.propertyType}
                   onChange={(e) => setCreateForm({ ...createForm, propertyType: e.target.value })}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                  className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
                 >
                   <option value="apartment">Apartment</option>
                   <option value="villa">Villa</option>
@@ -180,7 +181,7 @@ export default function BrokerPropertiesPage() {
                 type="text"
                 value={createForm.location}
                 onChange={(e) => setCreateForm({ ...createForm, location: e.target.value })}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
                 required
               />
             </div>
@@ -190,7 +191,7 @@ export default function BrokerPropertiesPage() {
                 type="number"
                 value={createForm.price}
                 onChange={(e) => setCreateForm({ ...createForm, price: e.target.value })}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
                 required
               />
             </div>
@@ -200,7 +201,7 @@ export default function BrokerPropertiesPage() {
                 value={createForm.description}
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                 rows={3}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
               />
             </div>
 
@@ -214,14 +215,14 @@ export default function BrokerPropertiesPage() {
                 className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[var(--zcanopy-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[var(--zcanopy-primary-alt)]"
               />
               {photos.length > 0 && (
-                <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl bg-gray-50 p-2">
+                <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-table-head)] p-2">
                   {photos.map((src, idx) => (
-                    <div key={idx} className="relative h-24 w-32 flex-shrink-0 overflow-hidden rounded-lg">
+                    <div key={idx} className="relative h-24 w-32 flex-shrink-0 overflow-hidden rounded-lg ring-1 ring-[var(--zcanopy-border)]">
                       <img src={src} alt={`Upload ${idx + 1}`} className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                        className="absolute right-1 top-1 rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white"
+                        className="absolute right-1 top-1 rounded-full bg-rose-700/90 p-1 text-white"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -240,12 +241,12 @@ export default function BrokerPropertiesPage() {
                 className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[var(--zcanopy-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[var(--zcanopy-primary-alt)]"
               />
               {video && (
-                <div className="mt-3 flex items-center gap-3 rounded-xl bg-gray-50 p-3">
-                  <video src={video} className="h-24 w-32 rounded-lg object-cover" />
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-table-head)] p-3">
+                  <video src={video} className="h-24 w-32 rounded-lg object-cover ring-1 ring-[var(--zcanopy-border)]" />
                   <button
                     type="button"
                     onClick={() => setVideo(null)}
-                    className="rounded-full bg-red-500 px-3 py-1 text-xs text-white"
+                    className="rounded-full bg-rose-700/90 px-3 py-1 text-xs font-semibold text-white"
                   >
                     Remove video
                   </button>
@@ -256,7 +257,7 @@ export default function BrokerPropertiesPage() {
             <button
               type="submit"
               disabled={creating}
-              className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
+              className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-3 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
             >
               {creating ? 'Creating...' : 'Create Property'}
             </button>
@@ -271,12 +272,12 @@ export default function BrokerPropertiesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search properties..."
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+            className="flex-1 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm"
           />
           <select
             value={propertyType}
             onChange={(e) => setPropertyType(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+            className="rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm"
           >
             <option value="">All Types</option>
             <option value="apartment">Apartment</option>
@@ -290,11 +291,11 @@ export default function BrokerPropertiesPage() {
       {filtered.length === 0 ? (
         <Panel>
           <div className="py-12 text-center">
-            <p className="text-gray-500">No properties found.</p>
+            <p className="text-[var(--zcanopy-muted)]">No properties found.</p>
           </div>
         </Panel>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2">
           {filtered.map((property) => (
             <PropertyCard key={property.id} {...property} href={`/dashboard/broker/properties/${property.id}`} />
           ))}

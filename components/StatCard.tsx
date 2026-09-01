@@ -5,9 +5,9 @@ interface StatCardProps {
 
 export default function StatCard({ label, value }: StatCardProps) {
   return (
-    <div className="rounded-lg border bg-white p-6 shadow-sm">
-      <p className="text-sm text-gray-600">{label}</p>
-      <p className="mt-2 text-2xl font-bold">{value}</p>
+    <div className="rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
+      <p className="zc-kicker">{label}</p>
+      <p className="mt-2 font-[family-name:var(--font-cormorant)] text-3xl text-[var(--zcanopy-card-brown)]">{value}</p>
     </div>
   );
 }

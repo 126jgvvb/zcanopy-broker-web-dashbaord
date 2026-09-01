@@ -105,10 +105,11 @@ export default function CustomerPropertiesPage() {
   if (error) return <ErrorState message={error} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-[var(--zcanopy-card-brown)]">Browse Properties</h2>
-        <p className="text-gray-500">Find your next home or investment and book directly.</p>
+        <p className="zc-kicker">Marketplace</p>
+        <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">Browse Properties</h2>
+        <p className="mt-1 text-[var(--zcanopy-muted)]">Find your next home or investment and book directly.</p>
       </div>
 
       <div className="flex items-center gap-4">
@@ -117,7 +118,7 @@ export default function CustomerPropertiesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search properties..."
-          className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+          className="flex-1 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm"
         />
       </div>
 
@@ -128,7 +129,7 @@ export default function CustomerPropertiesPage() {
           </div>
         </Panel>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3">
           {properties.map((property) => (
             <PropertyCard key={property.id} {...property} onBook={() => openBooking(property)} />
           ))}
@@ -136,8 +137,8 @@ export default function CustomerPropertiesPage() {
       )}
 
       {selectedProperty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-gray-100 bg-[var(--zcanopy-surface)] p-5 shadow-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-7 shadow-[var(--zcanopy-shadow)]">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Full Name</label>

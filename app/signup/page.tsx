@@ -21,7 +21,7 @@ function IdUpload({
 }) {
   return (
     <div>
-      <p className="mb-1.5 block text-sm font-medium text-gray-700">{label}</p>
+          <p className="text-sm font-medium text-[var(--zcanopy-card-brown)]">{label}</p>
       <label
         className={`flex h-36 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed text-center transition-colors ${
           preview ? 'border-[var(--zcanopy-primary)]' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'
@@ -183,34 +183,36 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-gray-100 bg-[var(--zcanopy-surface)] p-8 shadow-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(209,160,84,0.22),transparent_55%)]" />
+      <div className="relative w-full max-w-lg rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-9 shadow-[var(--zcanopy-shadow)]">
         <div className="mb-8 text-center">
           <span
-            className="inline-flex h-12 w-12 items-center justify-center rounded-xl font-bold text-xl shadow-lg"
+            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl font-[family-name:var(--font-cormorant)] text-3xl font-semibold shadow-lg"
             style={{ backgroundColor: COLORS.accentGold, color: COLORS.cardBrown }}
           >
             Z
           </span>
-          <h1 className="mt-4 text-2xl font-bold text-[var(--zcanopy-card-brown)]">Broker Registration</h1>
-          <p className="mt-1 text-sm text-gray-500">Create your broker account to get started</p>
+          <p className="zc-kicker mt-5">Get started</p>
+          <h1 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">Broker Registration</h1>
+          <p className="mt-2 text-sm text-[var(--zcanopy-muted)]">Create your broker account to get started</p>
         </div>
 
         {step === 'details' && (
           <form onSubmit={handleDetailsSubmit} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Full Name</label>
-              <input type="text" value={form.fullName} onChange={update('fullName')} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" required />
+              <input type="text" value={form.fullName} onChange={update('fullName')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
-              <input type="email" value={form.email} onChange={update('email')} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" required />
+              <input type="email" value={form.email} onChange={update('email')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone Number</label>
-              <input type="tel" value={form.phoneNumber} onChange={update('phoneNumber')} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" required />
+              <input type="tel" value={form.phoneNumber} onChange={update('phoneNumber')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -230,22 +232,22 @@ export default function SignUpPage() {
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
-              <input type="password" value={form.password} onChange={update('password')} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" required minLength={6} />
+              <input type="password" value={form.password} onChange={update('password')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required minLength={6} />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm Password</label>
-              <input type="password" value={form.confirmPassword} onChange={update('confirmPassword')} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" required minLength={6} />
+              <input type="password" value={form.confirmPassword} onChange={update('confirmPassword')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required minLength={6} />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Brand Name (optional)</label>
-              <input type="text" value={form.brokerBrandName} onChange={update('brokerBrandName')} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" placeholder="Mutaasa Brokers" />
+              <input type="text" value={form.brokerBrandName} onChange={update('brokerBrandName')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" placeholder="Mutaasa Brokers" />
             </div>
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
-            <button type="submit" disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
+            <button type="submit" disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-3 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
               {loading ? 'Please wait...' : 'Continue'}
             </button>
           </form>
@@ -256,14 +258,14 @@ export default function SignUpPage() {
             <p className="text-sm text-gray-500">Enter the OTPs sent to your email and phone.</p>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Email OTP</label>
-              <input type="text" value={otp.email} onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" required />
+              <input type="text" value={otp.email} onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone OTP</label>
-              <input type="text" value={otp.phone} onChange={(e) => setOtp((p) => ({ ...p, phone: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none" required />
+              <input type="text" value={otp.phone} onChange={(e) => setOtp((p) => ({ ...p, phone: e.target.value }))} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <button type="submit" disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
+            <button type="submit" disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-3 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
               {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
           </form>
@@ -274,7 +276,7 @@ export default function SignUpPage() {
             <p className="text-lg font-semibold text-[var(--zcanopy-card-brown)]">Your broker code is</p>
             <p className="text-3xl font-bold text-[var(--zcanopy-primary)]">{brokerCode}</p>
             <p className="text-sm text-gray-500">Save this code. You will need it to log in.</p>
-            <button onClick={handleWelcomeComplete} disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
+            <button onClick={handleWelcomeComplete} disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-3 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
               {loading ? 'Setting up...' : 'Go to Dashboard'}
             </button>
           </div>
@@ -282,7 +284,7 @@ export default function SignUpPage() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Already have an account?{' '}
-          <button onClick={() => router.push('/')} className="font-semibold underline" style={{ color: COLORS.primary }}>
+          <button onClick={() => router.push('/')} className="font-semibold text-[var(--zcanopy-primary)] underline-offset-4 hover:underline">
             Sign in
           </button>
         </p>

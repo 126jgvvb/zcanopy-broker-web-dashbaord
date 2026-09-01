@@ -125,39 +125,39 @@ export default function BrokerSubscriptionPage() {
         <p className="text-gray-500">Manage your subscription plan and features.</p>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-gradient-to-r from-[var(--zcanopy-card-brown)] to-[var(--zcanopy-primary)] p-5 shadow-sm text-white">
+      <div className="zc-plan-hero rounded-2xl p-6 shadow-[var(--zcanopy-shadow)]">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-white">Current Plan</h2>
+          <p className="zc-kicker" style={{ color: 'rgba(255,255,255,0.72)' }}>Current plan</p>
         </div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-white/80">ACTIVE PLAN</p>
-            <p className="text-3xl font-bold">{activeTierData?.name || 'Prop'}</p>
-            <p className="text-white/80">{formatPrice(activeTierData || { price: 0, currency: 'UGX', tier: 'prop' })}</p>
+            <p className="text-sm font-medium text-white/75">Active plan</p>
+            <p className="font-[family-name:var(--font-cormorant)] text-4xl font-semibold text-white">{activeTierData?.name || 'Prop'}</p>
+            <p className="mt-1 text-white/80">{formatPrice(activeTierData || { price: 0, currency: 'UGX', tier: 'prop' })}</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm font-medium text-white/80">
+          <div className="text-left sm:text-right">
+            <p className="text-sm font-medium text-white/75">
               {activeTier === 'prop' ? 'Free plan — no expiry' : 'Time remaining'}
             </p>
-            <p className="text-2xl font-bold">{formatCountdown()}</p>
+            <p className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-white">{formatCountdown()}</p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-xl bg-white/10 p-3 text-center">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-xl bg-black/20 p-3 text-center">
             <p className="text-xs text-white/70">Max Properties</p>
-            <p className="text-lg font-bold">{activeTierData?.limits?.maxProperties ?? 0}</p>
+            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxProperties ?? 0}</p>
           </div>
-          <div className="rounded-xl bg-white/10 p-3 text-center">
+          <div className="rounded-xl bg-black/20 p-3 text-center">
             <p className="text-xs text-white/70">Photos/Property</p>
-            <p className="text-lg font-bold">{activeTierData?.limits?.maxPhotosPerProperty ?? 0}</p>
+            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxPhotosPerProperty ?? 0}</p>
           </div>
-          <div className="rounded-xl bg-white/10 p-3 text-center">
+          <div className="rounded-xl bg-black/20 p-3 text-center">
             <p className="text-xs text-white/70">Videos/Property</p>
-            <p className="text-lg font-bold">{activeTierData?.limits?.maxVideosPerProperty ?? 0}</p>
+            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxVideosPerProperty ?? 0}</p>
           </div>
-          <div className="rounded-xl bg-white/10 p-3 text-center">
+          <div className="rounded-xl bg-black/20 p-3 text-center">
             <p className="text-xs text-white/70">Max Video Size</p>
-            <p className="text-lg font-bold">{activeTierData?.limits?.maxVideoSizeMB ? `${activeTierData.limits.maxVideoSizeMB}MB` : '500MB'}</p>
+            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxVideoSizeMB ? `${activeTierData.limits.maxVideoSizeMB}MB` : '500MB'}</p>
           </div>
         </div>
       </div>
@@ -171,7 +171,9 @@ export default function BrokerSubscriptionPage() {
               <div
                 key={tier.tier}
                 className={`rounded-2xl border-2 p-5 transition-all ${
-                  isActive ? 'border-[var(--zcanopy-primary)] shadow-md' : 'border-gray-100 bg-white shadow-sm'
+                  isActive
+                    ? 'border-[var(--zcanopy-primary)] bg-[var(--zcanopy-surface)] shadow-md'
+                    : 'border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] shadow-[var(--zcanopy-shadow)]'
                 }`}
               >
                 <div className="mb-2 flex items-center justify-between">
@@ -185,7 +187,7 @@ export default function BrokerSubscriptionPage() {
                 </p>
                 <ul className="mb-4 space-y-1">
                   {tier.advantages.map((adv, idx) => (
-                     <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                     <li key={idx} className="flex items-start gap-2 text-sm text-[var(--zcanopy-muted)]">
                        <span className="mt-0.5 text-green-500"><Check className="h-4 w-4" /></span>
                        {adv}
                      </li>
@@ -211,7 +213,7 @@ export default function BrokerSubscriptionPage() {
 
       {showPaymentDialog && selectedTierData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">Complete Payment</h3>
               <button
@@ -223,8 +225,8 @@ export default function BrokerSubscriptionPage() {
               </button>
             </div>
 
-            <div className="mb-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-700">Plan</p>
+            <div className="mb-4 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-table-head)] p-4">
+              <p className="text-sm font-medium text-[var(--zcanopy-muted)]">Plan</p>
               <p className="text-lg font-bold text-[var(--zcanopy-card-brown)]">{selectedTierData.name}</p>
               <p className="text-sm font-semibold" style={{ color: COLORS.primary }}>
                 {formatPrice(selectedTierData)}

@@ -1,15 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f5;
-  --foreground: #171717;
+  --background: #f4efe6;
+  --foreground: #2c211c;
 
   /* ZCanopy brand palette (mirrors the Flutter app) */
   --zcanopy-primary: #a9710e;
-  --zcanopy-primary-alt: #a9610e;
-  --zcanopy-card-brown: #5d4037;
+  --zcanopy-primary-alt: #8f5d0c;
+  --zcanopy-card-brown: #4a322c;
   --zcanopy-accent-gold: #d1a054;
-  --zcanopy-surface: #ffffff;
+  --zcanopy-surface: #fffcf8;
+  --zcanopy-muted: #7a6a60;
+  --zcanopy-border: rgba(93, 64, 55, 0.1);
+  --zcanopy-ring: rgba(169, 113, 14, 0.22);
+  --zcanopy-shadow: 0 1px 2px rgba(44, 33, 28, 0.04), 0 12px 32px -16px rgba(44, 33, 28, 0.18);
+  --zcanopy-shadow-hover: 0 8px 28px -12px rgba(93, 64, 55, 0.28);
+  --zcanopy-table-head: #ece4d6;
 }
 
 @theme inline {
@@ -22,17 +28,28 @@
   --color-zcanopy-surface: var(--zcanopy-surface);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-cormorant);
   --animate-letter-drop: letterDrop 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Manual dark theme, toggled via the `dark` class on <html>. */
 html.dark {
-  --background: #0f0f0f;
-  --foreground: #e5e5e5;
-  --zcanopy-surface: #1a1a1a;
+  --background: #14110e;
+  --foreground: #f6ead4;
+  --zcanopy-card-brown: #f3e2b8;
+  --zcanopy-surface: #1c1814;
+  --zcanopy-muted: #b8a894;
+  --zcanopy-border: rgba(243, 226, 184, 0.1);
+  --zcanopy-ring: rgba(209, 160, 84, 0.28);
+  --zcanopy-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px -20px rgba(0, 0, 0, 0.55);
+  --zcanopy-shadow-hover: 0 12px 32px -12px rgba(0, 0, 0, 0.55);
+  --zcanopy-table-head: #2a241e;
 }
 
-/* Smooth transition when toggling themes. */
+html.dark aside {
+  --zcanopy-card-brown: #5d4037;
+  color: #ffffff;
+}
+
 html {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
@@ -48,28 +65,71 @@ body {
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px 500px at 8% -10%, rgba(209, 160, 84, 0.16), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, rgba(169, 113, 14, 0.08), transparent 50%),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  letter-spacing: -0.011em;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-cormorant), "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--zcanopy-accent-gold) 70%, white);
+  color: var(--zcanopy-card-brown);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--zcanopy-card-brown) 22%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 input,
 textarea,
 select {
   color: var(--foreground);
+  border-color: var(--zcanopy-border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--zcanopy-primary) !important;
+  box-shadow: 0 0 0 4px var(--zcanopy-ring);
 }
 
 html.dark input,
 html.dark textarea,
 html.dark select {
-  background-color: #262626;
-  border-color: #404040;
-  color: #e5e5e5;
+  background-color: #26211c;
+  border-color: #3d352c;
+  color: #f6ead4;
 }
 
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #a3a3a3;
+  color: #8a7d6c;
 }
 
 .line-clamp-2 {
@@ -80,11 +140,11 @@ html.dark textarea::placeholder {
 }
 
 .hover-gold {
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .hover-gold:hover {
-  background-color: #D1A054 !important;
+  background-color: #d1a054 !important;
   color: #ffffff !important;
 }
 
@@ -116,4 +176,184 @@ html.dark textarea::placeholder {
 
 .letter-drop {
   animation: var(--animate-letter-drop);
+}
+
+.zc-page {
+  animation: fadeIn 0.45s ease both;
+}
+
+.zc-kicker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--zcanopy-muted);
+}
+
+details summary::-webkit-details-marker {
+  color: var(--zcanopy-card-brown);
+}
+
+h2.text-2xl {
+  font-size: 2.15rem;
+  line-height: 1.15;
+}
+
+p.text-gray-500,
+.text-gray-500,
+.text-gray-400,
+.text-gray-600 {
+  color: var(--zcanopy-muted);
+}
+
+.zc-table-wrap {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--zcanopy-border);
+  background: var(--zcanopy-surface);
+  box-shadow: var(--zcanopy-shadow);
+}
+
+.zc-table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.zc-table thead {
+  background: var(--zcanopy-table-head);
+}
+
+.zc-table th {
+  padding: 0.85rem 1.5rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--zcanopy-card-brown);
+}
+
+.zc-table td {
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  white-space: nowrap;
+  border-top: 1px solid var(--zcanopy-border);
+}
+
+.zc-table tbody tr {
+  background: var(--zcanopy-surface);
+  transition: background-color 0.15s ease;
+}
+
+.zc-table tbody tr:hover {
+  background: color-mix(in srgb, var(--zcanopy-accent-gold) 10%, var(--zcanopy-surface));
+}
+
+.zc-table .zc-table-primary {
+  font-weight: 600;
+  color: var(--zcanopy-card-brown);
+}
+
+.zc-table .zc-table-muted {
+  color: var(--zcanopy-muted);
+}
+
+.zc-table .zc-table-empty {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--zcanopy-muted);
+  white-space: normal;
+}
+
+.zc-badge {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.zc-badge-ok {
+  background: rgba(6, 95, 70, 0.12);
+  color: #065f46;
+}
+
+.zc-badge-pending {
+  background: rgba(146, 64, 14, 0.12);
+  color: #92400e;
+}
+
+.zc-badge-bad {
+  background: rgba(153, 27, 27, 0.12);
+  color: #9f1239;
+}
+
+html.dark .zc-badge-ok {
+  background: rgba(52, 211, 153, 0.16);
+  color: #6ee7b7;
+}
+
+html.dark .zc-badge-pending {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fcd34d;
+}
+
+html.dark .zc-badge-bad {
+  background: rgba(251, 113, 133, 0.16);
+  color: #fda4af;
+}
+
+.zc-link-ok {
+  font-weight: 600;
+  color: #047857;
+}
+
+.zc-link-ok:hover {
+  color: #065f46;
+}
+
+.zc-link-bad {
+  font-weight: 600;
+  color: #be123c;
+}
+
+.zc-link-bad:hover {
+  color: #9f1239;
+}
+
+html.dark .zc-link-ok {
+  color: #34d399;
+}
+
+html.dark .zc-link-ok:hover {
+  color: #6ee7b7;
+}
+
+html.dark .zc-link-bad {
+  color: #fb7185;
+}
+
+html.dark .zc-link-bad:hover {
+  color: #fda4af;
+}
+
+.zc-plan-hero {
+  background: linear-gradient(115deg, #3d241e 0%, #5d4037 42%, #a9710e 100%);
+  color: #fffaf3;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.zc-plan-hero,
+.zc-plan-hero h1,
+.zc-plan-hero h2,
+.zc-plan-hero h3,
+.zc-plan-hero p {
+  color: #fffaf3;
+}
+
+html.dark .zc-plan-hero {
+  background: linear-gradient(115deg, #2a1814 0%, #4a322c 48%, #8f5d0c 100%);
 }

@@ -41,38 +41,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-[var(--zcanopy-surface)] p-8 shadow-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(209,160,84,0.22),transparent_55%)]" />
+      <div className="relative w-full max-w-md rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-9 shadow-[var(--zcanopy-shadow)]">
         <div className="mb-8 text-center">
           <span
-            className="inline-flex h-12 w-12 items-center justify-center rounded-xl font-bold text-xl shadow-lg"
+            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl font-[family-name:var(--font-cormorant)] text-3xl font-semibold shadow-lg"
             style={{ backgroundColor: COLORS.accentGold, color: COLORS.cardBrown }}
           >
             Z
           </span>
-          <h1 className="mt-4 text-2xl font-bold text-[var(--zcanopy-card-brown)]">Broker Login</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to your broker account</p>
+          <p className="zc-kicker mt-5">Broker console</p>
+          <h1 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">Welcome back</h1>
+          <p className="mt-2 text-sm text-[var(--zcanopy-muted)]">Sign in to manage your listings.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Code / Email</label>
+            <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Broker Code / Email</label>
             <input
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+              className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-3 shadow-sm"
               required
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+            <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+              className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-3 shadow-sm"
               required
             />
           </div>
@@ -82,15 +84,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
+            className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-3 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-7 text-center text-sm text-[var(--zcanopy-muted)]">
           Not a broker?{' '}
-          <button onClick={() => router.push('/signup')} className="font-semibold underline" style={{ color: COLORS.primary }}>
+          <button onClick={() => router.push('/signup')} className="font-semibold text-[var(--zcanopy-primary)] underline-offset-4 hover:underline">
             Register
           </button>
         </p>

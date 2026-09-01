@@ -78,10 +78,11 @@ export default function BrokerDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-[var(--zcanopy-card-brown)]">Broker Dashboard</h2>
-        <p className="text-gray-500">Welcome back! Here is what is happening with your listings.</p>
+        <p className="zc-kicker">Overview</p>
+        <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">Broker Dashboard</h2>
+        <p className="mt-1 text-[var(--zcanopy-muted)]">Welcome back. Here is what is happening with your listings.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -101,7 +102,7 @@ export default function BrokerDashboardPage() {
         >
           <div className="space-y-3">
             {properties.slice(0, 5).map((property) => (
-              <div key={property.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-colors hover:border-[var(--zcanopy-accent-gold)]">
+              <div key={property.id} className="flex items-center justify-between rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3.5 transition-all hover:border-[var(--zcanopy-accent-gold)]">
                 <div>
                   <p className="font-medium">{property.title}</p>
                   <p className="text-sm text-gray-500">{property.location}</p>
@@ -125,7 +126,7 @@ export default function BrokerDashboardPage() {
         >
           <div className="space-y-3">
             {bookings.slice(0, 5).map((booking) => (
-              <div key={booking.id} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-colors hover:border-[var(--zcanopy-accent-gold)]">
+              <div key={booking.id} className="flex items-center justify-between rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3.5 transition-all hover:border-[var(--zcanopy-accent-gold)]">
                 <div>
                   <p className="font-medium">{booking.propertyTitle}</p>
                   <p className="text-sm text-gray-500">{booking.customerPhone}</p>
@@ -170,14 +171,14 @@ export default function BrokerDashboardPage() {
           <div className="flex flex-col gap-3">
             <Link
               href="/dashboard/broker/wallet"
-              className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-colors hover:border-[var(--zcanopy-accent-gold)]"
+              className="flex items-center justify-between rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3.5 transition-all hover:border-[var(--zcanopy-accent-gold)]"
             >
               <span className="font-medium">Withdraw Funds</span>
               <span className="text-sm text-gray-500">UGX {walletBalance.toLocaleString()}</span>
             </Link>
             <Link
               href="/dashboard/broker/subscription"
-              className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-colors hover:border-[var(--zcanopy-accent-gold)]"
+              className="flex items-center justify-between rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3.5 transition-all hover:border-[var(--zcanopy-accent-gold)]"
             >
               <span className="font-medium">Upgrade Plan</span>
               <span className="text-sm text-gray-500">{tierName}</span>

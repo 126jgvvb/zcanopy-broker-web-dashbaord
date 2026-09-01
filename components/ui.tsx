@@ -50,11 +50,11 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-gray-100 bg-[var(--zcanopy-surface)] p-5 shadow-sm">
+    <section className="rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
       {(title || action) && (
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between gap-3">
           {title ? (
-            <h2 className="text-base font-semibold text-[var(--zcanopy-card-brown)]">
+            <h2 className="text-xl text-[var(--zcanopy-card-brown)]">
               {title}
             </h2>
           ) : (
@@ -78,14 +78,14 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-[var(--zcanopy-surface)] p-5 shadow-sm transition-shadow hover:shadow-md">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+    <div className="rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[var(--zcanopy-shadow-hover)]">
+      <p className="zc-kicker">
         {label}
       </p>
-      <p className="mt-3 text-2xl font-bold text-[var(--zcanopy-card-brown)]">
+      <p className="mt-3 font-[family-name:var(--font-cormorant)] text-3xl font-semibold tracking-tight text-[var(--zcanopy-card-brown)]">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-gray-400">{hint}</p> : null}
+      {hint ? <p className="mt-1.5 text-xs text-[var(--zcanopy-muted)]">{hint}</p> : null}
     </div>
   );
 }
@@ -100,7 +100,7 @@ export function LoadingState({ label }: { label?: string }) {
 
 export function ErrorState({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+    <div className="rounded-2xl border border-red-200/80 bg-red-50/80 px-4 py-3.5 text-sm text-red-700">
       {message}
     </div>
   );

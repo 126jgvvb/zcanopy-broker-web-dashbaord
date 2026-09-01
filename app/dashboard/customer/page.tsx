@@ -57,10 +57,11 @@ export default function CustomerDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-[var(--zcanopy-card-brown)]">Customer Dashboard</h2>
-        <p className="text-gray-500">Explore properties and manage your bookings.</p>
+        <p className="zc-kicker">Overview</p>
+        <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">Customer Dashboard</h2>
+        <p className="mt-1 text-[var(--zcanopy-muted)]">Explore properties and manage your bookings.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

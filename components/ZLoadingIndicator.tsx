@@ -66,7 +66,7 @@ export default function ZLoadingIndicator({
         />
       </svg>
       {label ? (
-        <p className="text-sm font-medium" style={{ color }}>
+        <p className="text-sm font-medium tracking-wide" style={{ color }}>
           {label}
         </p>
       ) : null}

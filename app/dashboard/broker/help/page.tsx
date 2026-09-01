@@ -44,7 +44,7 @@ export default function BrokerHelpPage() {
         <p className="text-gray-500">Find answers and get support.</p>
       </div>
 
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-[var(--zcanopy-border)]">
         {['faq', 'contact'].map((tab) => (
           <button
             key={tab}
@@ -59,11 +59,11 @@ export default function BrokerHelpPage() {
       </div>
 
       {activeTab === 'faq' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {faqs.map((faq, idx) => (
-            <details key={idx} className="group rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <details key={idx} className="group rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-4 shadow-[var(--zcanopy-shadow)]">
               <summary className="cursor-pointer font-semibold text-[var(--zcanopy-card-brown)]">{faq.question}</summary>
-              <p className="mt-2 text-sm text-gray-600">{faq.answer}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--zcanopy-muted)]">{faq.answer}</p>
             </details>
           ))}
         </div>
