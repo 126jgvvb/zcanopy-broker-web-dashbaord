@@ -11,11 +11,12 @@ interface PropertyCardProps {
   imageUrl?: string[];
   videoUrl?: string[];
   price?: number;
+  brokerBookingFee?: number;
   onBook?: () => void;
   href?: string;
 }
 
-export default function PropertyCard({ id, title, description, propertyType, location, isAvailable, imageUrl, videoUrl, price, onBook, href = `/properties/${id}` }: PropertyCardProps) {
+export default function PropertyCard({ id, title, description, propertyType, location, isAvailable, imageUrl, videoUrl, price, brokerBookingFee, onBook, href = `/properties/${id}` }: PropertyCardProps) {
   const images = imageUrl?.filter(Boolean) || [];
   const videos = videoUrl?.filter(Boolean) || [];
   const mainImage = images[0] || "https://via.placeholder.com/600x400?text=No+Image";
@@ -32,6 +33,11 @@ export default function PropertyCard({ id, title, description, propertyType, loc
           <p className="absolute bottom-3 left-3 font-[family-name:var(--font-cormorant)] text-xl font-semibold text-white drop-shadow">
             UGX {price.toLocaleString()}
           </p>
+        )}
+        {brokerBookingFee !== undefined && (
+          <span className="absolute right-3 top-3 rounded-full bg-[var(--zcanopy-primary)]/90 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+            Fee: UGX {brokerBookingFee.toLocaleString()}
+          </span>
         )}
       </div>
       <div className="p-5">

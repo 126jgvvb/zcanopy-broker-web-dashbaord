@@ -18,6 +18,7 @@ interface Property {
   imageUrl?: string[];
   videoUrl?: string[];
   price?: number;
+  brokerBookingFee?: number;
   latitude?: number;
   longitude?: number;
 }
@@ -38,7 +39,7 @@ export default function BrokerPropertyDetailPage() {
   const [error, setError] = useState('');
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ title: '', description: '', location: '', price: '', propertyType: 'apartment' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', location: '', price: '', brokerBookingFee: '', propertyType: 'apartment' });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -67,6 +68,7 @@ export default function BrokerPropertyDetailPage() {
           description: prop.description || '',
           location: prop.location || '',
           price: prop.price?.toString() || '',
+          brokerBookingFee: prop.brokerBookingFee?.toString() || '',
           propertyType: prop.propertyType || 'apartment',
         });
         const limits = (subData as any).limits || {};
@@ -98,11 +100,12 @@ export default function BrokerPropertyDetailPage() {
         description: editForm.description,
         location: editForm.location,
         price: Number(editForm.price),
+        brokerBookingFee: Number(editForm.brokerBookingFee),
         propertyType: editForm.propertyType,
         imageUrl: photos,
         videoUrl: videos,
       });
-      setProperty((prev) => prev ? { ...prev, ...editForm, price: Number(editForm.price), imageUrl: photos, videoUrl: videos } : prev);
+      setProperty((prev) => prev ? { ...prev, ...editForm, price: Number(editForm.price), brokerBookingFee: Number(editForm.brokerBookingFee), imageUrl: photos, videoUrl: videos } : prev);
       setEditing(false);
     } catch {
       // ignore
@@ -242,6 +245,16 @@ export default function BrokerPropertyDetailPage() {
                 onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
                 required
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Booking Fee (UGX)</label>
+              <input
+                type="number"
+                value={editForm.brokerBookingFee}
+                onChange={(e) => setEditForm({ ...editForm, brokerBookingFee: e.target.value })}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
+                placeholder="e.g. 50000"
               />
             </div>
             <div>
@@ -397,6 +410,10 @@ export default function BrokerPropertyDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Price</span>
                 <span className="text-lg font-bold text-[var(--zcanopy-card-brown)]">UGX {(property.price || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Broker Booking Fee</span>
+                <span className="text-sm font-semibold text-[var(--zcanopy-card-brown)]">UGX {(property.brokerBookingFee || 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Date Uploaded</span>

@@ -17,6 +17,7 @@ interface Property {
   createdAt: string;
   imageUrl?: string[];
   price?: number;
+  brokerBookingFee?: number;
 }
 
 interface TierLimits {
@@ -34,7 +35,7 @@ export default function BrokerPropertiesPage() {
   const [propertyType, setPropertyType] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({ title: '', description: '', propertyType: 'apartment', location: '', price: '' });
+  const [createForm, setCreateForm] = useState({ title: '', description: '', propertyType: 'apartment', location: '', price: '', brokerBookingFee: '' });
   const [photos, setPhotos] = useState<string[]>([]);
   const [video, setVideo] = useState<string | null>(null);
   const [tier, setTier] = useState({ name: 'Prop', limits: {} as TierLimits });
@@ -105,12 +106,13 @@ export default function BrokerPropertiesPage() {
         propertyType: createForm.propertyType,
         location: createForm.location,
         price: Number(createForm.price),
+        brokerBookingFee: Number(createForm.brokerBookingFee),
         brokersUniqueCode: 'BRK-WEB-1',
         imageUrl: photos,
         videoUrl: video,
       });
       setShowCreate(false);
-      setCreateForm({ title: '', description: '', propertyType: 'apartment', location: '', price: '' });
+      setCreateForm({ title: '', description: '', propertyType: 'apartment', location: '', price: '', brokerBookingFee: '' });
       setPhotos([]);
       setVideo(null);
       const data = await webApi.brokerProperties(token);
@@ -193,6 +195,16 @@ export default function BrokerPropertiesPage() {
                 onChange={(e) => setCreateForm({ ...createForm, price: e.target.value })}
                 className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
                 required
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Booking Fee (UGX)</label>
+              <input
+                type="number"
+                value={createForm.brokerBookingFee}
+                onChange={(e) => setCreateForm({ ...createForm, brokerBookingFee: e.target.value })}
+                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
+                placeholder="e.g. 50000"
               />
             </div>
             <div>
