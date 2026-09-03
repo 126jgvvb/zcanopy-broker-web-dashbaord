@@ -89,10 +89,10 @@ export const webApi = {
       { method: 'POST', body: { email, password, type }, fallback: mockData.login() },
     ),
 
-  brokerLogin: (brokerCode: string, password: string) =>
+  brokerLogin: (brokerCode: string, password: string, email?: string) =>
     apiFetch<{ id: string; username: string; email: string; role: string; brokerCode: string; token: string }>(
       '/web/auth/broker/login',
-      { method: 'POST', body: { brokerCode, password, deviceId: 'web-dashboard' }, fallback: mockData.brokerLogin() },
+      { method: 'POST', body: { brokerCode, password, email, deviceId: 'web-dashboard' }, fallback: mockData.brokerLogin() },
     ),
 
   brokerSetup: (body: unknown) =>
