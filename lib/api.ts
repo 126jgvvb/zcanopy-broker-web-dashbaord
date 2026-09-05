@@ -1,4 +1,5 @@
 import { mockData } from './mockData';
+import { uploadToCloudinary, uploadMultipleToCloudinary, type CloudinaryUploadResponse } from './cloudinary';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
 
@@ -199,4 +200,10 @@ export const webApi = {
 
   createCustomerSession: (body: unknown) =>
     apiFetch('/customer/session', { method: 'POST', body, fallback: { sessionToken: 'mock-customer-session', customerId: 'mock-customer-1' } }),
+
+  uploadImage: (file: File, folder = 'zcanopy/properties') =>
+    uploadToCloudinary(file, folder),
+
+  uploadMultipleImages: (files: File[], folder = 'zcanopy/properties') =>
+    uploadMultipleToCloudinary(files, folder),
 };

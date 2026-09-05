@@ -431,7 +431,7 @@ export default function BrokerPropertyDetailPage() {
           </Panel>
 
           <Panel title="Location">
-            {property.latitude && property.longitude ? (
+            {(property.latitude != null && property.longitude != null && property.latitude !== 0 && property.longitude !== 0) ? (
               <div className="overflow-hidden rounded-2xl bg-gray-100">
                 <iframe
                   title="Property Location"
@@ -445,8 +445,8 @@ export default function BrokerPropertyDetailPage() {
               </div>
             ) : (
               <div className="py-12 text-center text-sm text-gray-500">
-                <p>Location: {property.location}</p>
-                <p className="mt-1 text-xs text-gray-400">Coordinates not available</p>
+                <p>This property was not lively captured on site,please refer to the location text</p>
+                <p className="mt-1 text-xs text-gray-400">Location: {property.location}</p>
               </div>
             )}
           </Panel>

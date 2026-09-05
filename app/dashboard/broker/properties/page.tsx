@@ -36,6 +36,9 @@ export default function BrokerPropertiesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState({ title: '', description: '', propertyType: 'apartment', location: '', price: '', brokerBookingFee: '' });
+  const [locationEditable, setLocationEditable] = useState(false);
+  const [lat, setLat] = useState(0);
+  const [lng, setLng] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
   const [video, setVideo] = useState<string | null>(null);
   const [tier, setTier] = useState({ name: 'Prop', limits: {} as TierLimits });
@@ -66,6 +69,29 @@ export default function BrokerPropertiesPage() {
       .catch(() => setError('Failed to load properties'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (locationEditable) {
+      setLat(0);
+      setLng(0);
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLat(0);
+      setLng(0);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude);
+        setLng(pos.coords.longitude);
+      },
+      () => {
+        setLat(0);
+        setLng(0);
+      },
+    );
+  }, [locationEditable]);
 
   const filtered = properties.filter((p) => {
     const matchesSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.location.toLowerCase().includes(search.toLowerCase());
@@ -110,9 +136,12 @@ export default function BrokerPropertiesPage() {
         brokersUniqueCode: 'BRK-WEB-1',
         imageUrl: photos,
         videoUrl: video,
+        lat,
+        lng,
       });
       setShowCreate(false);
       setCreateForm({ title: '', description: '', propertyType: 'apartment', location: '', price: '', brokerBookingFee: '' });
+      setLocationEditable(false);
       setPhotos([]);
       setVideo(null);
       const data = await webApi.brokerProperties(token);
@@ -177,6 +206,20 @@ export default function BrokerPropertiesPage() {
                 </select>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Enter location manually?</label>
+              <input
+                type="checkbox"
+                checked={locationEditable}
+                onChange={(e) => setLocationEditable(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-[var(--zcanopy-primary)] focus:ring-[var(--zcanopy-primary)]"
+              />
+            </div>
+            {locationEditable && (
+              <p className="text-xs text-gray-500">
+                You are not currently at the property location? Fill the location field manually instead of using GPS.
+              </p>
+            )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Location</label>
               <input
