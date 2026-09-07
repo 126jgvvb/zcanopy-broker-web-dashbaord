@@ -1,7 +1,58 @@
 import { mockData } from './mockData';
-import { uploadToCloudinary, uploadMultipleToCloudinary, type CloudinaryUploadResponse } from './cloudinary';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
+
+export interface PresignResponse {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+}
+
+function buildApiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
+async function getUploadPresignedUrl(filename: string, contentType: string, folder = 'properties'): Promise<PresignResponse> {
+  const res = await fetch(buildApiUrl('/upload/presign'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename, contentType, folder }),
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to get upload URL: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function uploadToSpaces(file: File, folder = 'properties'): Promise<string> {
+  const { uploadUrl, publicUrl } = await getUploadPresignedUrl(file.name, file.type, folder);
+
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': file.type,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Upload failed: ${res.status}`);
+  }
+
+  return publicUrl;
+}
+
+export async function uploadMultipleToSpaces(files: File[], folder = 'properties'): Promise<string[]> {
+  const results: string[] = [];
+  for (const file of files) {
+    const publicUrl = await uploadToSpaces(file, folder);
+    results.push(publicUrl);
+  }
+  return results;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -201,9 +252,7 @@ export const webApi = {
   createCustomerSession: (body: unknown) =>
     apiFetch('/customer/session', { method: 'POST', body, fallback: { sessionToken: 'mock-customer-session', customerId: 'mock-customer-1' } }),
 
-  uploadImage: (file: File, folder = 'zcanopy/properties') =>
-    uploadToCloudinary(file, folder),
+  uploadFile: (file: File, folder = 'properties') => uploadToSpaces(file, folder),
 
-  uploadMultipleImages: (files: File[], folder = 'zcanopy/properties') =>
-    uploadMultipleToCloudinary(files, folder),
+  uploadMultipleFiles: (files: File[], folder = 'properties') => uploadMultipleToSpaces(files, folder),
 };
