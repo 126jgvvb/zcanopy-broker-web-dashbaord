@@ -7,10 +7,38 @@ import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 
-interface Property {
-  id: string;
-  title: string;
-  description: string;
+const SCRIPT_ID = 'google-maps-script';
+
+export default function BrokerPropertiesPage() {
+  const [mapsReady, setMapsReady] = useState(false);
+
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+
+    const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
+    if (existing) {
+      if (window.google?.maps) {
+        setMapsReady(true);
+      } else {
+        existing.addEventListener('load', () => setMapsReady(true));
+      }
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = SCRIPT_ID;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.addEventListener('load', () => setMapsReady(true));
+    document.head.appendChild(script);
+  }, []);
+
+  interface Property {
+    id: string;
+    title: string;
+    description: string;
   propertyType: string;
   location: string;
   isAvailable: boolean;
@@ -105,8 +133,9 @@ export default function BrokerPropertiesPage() {
   useEffect(() => {
     if (locationEditable) return;
     if (lat === 0 || lng === 0) return;
+    if (!mapsReady) return;
     reverseGeocode(lat, lng);
-  }, [lat, lng, locationEditable]);
+  }, [lat, lng, locationEditable, mapsReady]);
 
   const reverseGeocode = async (latitude: number, longitude: number) => {
     if (!window.google?.maps) return;
@@ -142,11 +171,13 @@ export default function BrokerPropertiesPage() {
       if (!window.google?.maps?.places) {
         setLocationSuggestions([]);
         setShowLocationDropdown(false);
+        setLocationLoading(false);
         return;
       }
       if (query.trim().length < 2) {
         setLocationSuggestions([]);
         setShowLocationDropdown(false);
+        setLocationLoading(false);
         return;
       }
       setLocationLoading(true);
@@ -192,7 +223,7 @@ export default function BrokerPropertiesPage() {
     }
 
     return () => clearTimeout(debounceTimer);
-  }, [createForm.location, showCreate]);
+  }, [createForm.location, showCreate, mapsReady]);
 
   const handleLocationBlur = () => {
     setTimeout(() => setShowLocationDropdown(false), 200);
