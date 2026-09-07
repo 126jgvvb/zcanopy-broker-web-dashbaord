@@ -109,13 +109,20 @@ export default function BrokerPropertiesPage() {
   }, [lat, lng, locationEditable]);
 
   const reverseGeocode = async (latitude: number, longitude: number) => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+    if (!window.google?.maps) return;
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
-      const data = await res.json();
-      if (data.results?.[0]?.formatted_address) {
-        setCreateForm((prev) => ({ ...prev, location: data.results[0].formatted_address }));
+      const geocoder = new window.google.maps.Geocoder();
+      const result = await new Promise<google.maps.GeocoderResult | undefined>((resolve) => {
+        geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
+          if (status === 'OK' && results?.[0]) {
+            resolve(results[0]);
+          } else {
+            resolve(undefined);
+          }
+        });
+      });
+      if (result?.formatted_address) {
+        setCreateForm((prev) => ({ ...prev, location: result.formatted_address }));
       }
     } catch {
       // ignore reverse geocode failure
@@ -130,26 +137,39 @@ export default function BrokerPropertiesPage() {
     }
 
     let debounceTimer: ReturnType<typeof setTimeout>;
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     const fetchSuggestions = async (query: string) => {
-      if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY' || query.trim().length < 2) {
+      if (!window.google?.maps?.places) {
+        setLocationSuggestions([]);
+        setShowLocationDropdown(false);
+        return;
+      }
+      if (query.trim().length < 2) {
         setLocationSuggestions([]);
         setShowLocationDropdown(false);
         return;
       }
       setLocationLoading(true);
       try {
-        const res = await fetch(
-          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=geocode&key=${apiKey}`
-        );
-        const data = await res.json();
-        if (data.predictions?.length > 0) {
+        const service = new window.google.maps.places.AutocompleteService();
+        const predictions = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve) => {
+          service.getPlacePredictions(
+            { input: query, types: ['geocode'] },
+            (results, status) => {
+              if (status === 'OK' && results) {
+                resolve(results);
+              } else {
+                resolve([]);
+              }
+            },
+          );
+        });
+        if (predictions.length > 0) {
           setLocationSuggestions(
-            data.predictions.map((p: { description: string; place_id: string }) => ({
+            predictions.map((p) => ({
               description: p.description,
               placeId: p.place_id,
-            }))
+            })),
           );
           setShowLocationDropdown(true);
         } else {
@@ -183,16 +203,22 @@ export default function BrokerPropertiesPage() {
     setShowLocationDropdown(false);
     setLocationSuggestions([]);
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+    if (!window.google?.maps) return;
 
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${apiKey}`);
-      const data = await res.json();
-      if (data.results?.[0]?.geometry?.location) {
-        const loc = data.results[0].geometry.location;
-        setLat(loc.lat);
-        setLng(loc.lng);
+      const geocoder = new window.google.maps.Geocoder();
+      const result = await new Promise<google.maps.GeocoderResult | undefined>((resolve) => {
+        geocoder.geocode({ placeId }, (results, status) => {
+          if (status === 'OK' && results?.[0]) {
+            resolve(results[0]);
+          } else {
+            resolve(undefined);
+          }
+        });
+      });
+      if (result?.geometry?.location) {
+        setLat(result.geometry.location.lat());
+        setLng(result.geometry.location.lng());
       }
     } catch {
       // ignore geocode failure
