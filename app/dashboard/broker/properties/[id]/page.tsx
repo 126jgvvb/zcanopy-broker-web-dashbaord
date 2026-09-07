@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { webApi } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import GoogleMap from '@/components/GoogleMap';
+import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 
 interface Property {
@@ -432,16 +433,17 @@ export default function BrokerPropertyDetailPage() {
 
           <Panel title="Location">
             {(property.latitude != null && property.longitude != null && property.latitude !== 0 && property.longitude !== 0) ? (
-              <div className="overflow-hidden rounded-2xl bg-gray-100">
-                <iframe
-                  title="Property Location"
-                  width="100%"
-                  height="300"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${property.longitude - 0.01}%2C${property.latitude - 0.01}%2C${property.longitude + 0.01}%2C${property.latitude + 0.01}&layer=mapnik&marker=${property.latitude}%2C${property.longitude}`}
-                />
+              <div className="space-y-3">
+                <GoogleMap lat={property.latitude} lng={property.longitude} title={property.title} height={300} />
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${property.latitude},${property.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open in Google Maps
+                </a>
               </div>
             ) : (
               <div className="py-12 text-center text-sm text-gray-500">

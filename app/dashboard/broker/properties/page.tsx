@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PropertyCard from '@/components/PropertyCard';
 import { webApi } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
@@ -39,6 +39,10 @@ export default function BrokerPropertiesPage() {
   const [locationEditable, setLocationEditable] = useState(false);
   const [lat, setLat] = useState(0);
   const [lng, setLng] = useState(0);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const [locationSuggestions, setLocationSuggestions] = useState<{ description: string; placeId: string }[]>([]);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [video, setVideo] = useState<string | null>(null);
   const [tier, setTier] = useState({ name: 'Prop', limits: {} as TierLimits });
@@ -74,6 +78,8 @@ export default function BrokerPropertiesPage() {
     if (locationEditable) {
       setLat(0);
       setLng(0);
+      setLocationSuggestions([]);
+      setShowLocationDropdown(false);
       return;
     }
     if (!navigator.geolocation) {
@@ -82,9 +88,22 @@ export default function BrokerPropertiesPage() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
+      async (pos) => {
+        const latitude = pos.coords.latitude;
+        const longitude = pos.coords.longitude;
+        setLat(latitude);
+        setLng(longitude);
+        try {
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+          if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+          const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
+          const data = await res.json();
+          if (data.results?.[0]?.formatted_address) {
+            setCreateForm((prev) => ({ ...prev, location: data.results[0].formatted_address }));
+          }
+        } catch {
+          // ignore reverse geocode failure
+        }
       },
       () => {
         setLat(0);
@@ -92,6 +111,79 @@ export default function BrokerPropertiesPage() {
       },
     );
   }, [locationEditable]);
+
+  useEffect(() => {
+    if (!showCreate) {
+      setLocationSuggestions([]);
+      setShowLocationDropdown(false);
+      return;
+    }
+
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+    const fetchSuggestions = async (query: string) => {
+      if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY' || query.trim().length < 2) {
+        setLocationSuggestions([]);
+        setShowLocationDropdown(false);
+        return;
+      }
+      setLocationLoading(true);
+      try {
+        const res = await fetch(
+          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(query)}&types=geocode&key=${apiKey}`
+        );
+        const data = await res.json();
+        if (data.predictions?.length > 0) {
+          setLocationSuggestions(
+            data.predictions.map((p: { description: string; place_id: string }) => ({
+              description: p.description,
+              placeId: p.place_id,
+            }))
+          );
+          setShowLocationDropdown(true);
+        } else {
+          setLocationSuggestions([]);
+          setShowLocationDropdown(false);
+        }
+      } catch {
+        setLocationSuggestions([]);
+        setShowLocationDropdown(false);
+      } finally {
+        setLocationLoading(false);
+      }
+    };
+
+    if (createForm.location.trim().length >= 2) {
+      debounceTimer = setTimeout(() => fetchSuggestions(createForm.location), 300);
+    } else {
+      setLocationSuggestions([]);
+      setShowLocationDropdown(false);
+    }
+
+    return () => clearTimeout(debounceTimer);
+  }, [createForm.location, showCreate]);
+
+  const handleLocationSelect = async (description: string, placeId: string) => {
+    setCreateForm((prev) => ({ ...prev, location: description }));
+    setShowLocationDropdown(false);
+    setLocationSuggestions([]);
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+
+    try {
+      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${apiKey}`);
+      const data = await res.json();
+      if (data.results?.[0]?.geometry?.location) {
+        const loc = data.results[0].geometry.location;
+        setLat(loc.lat);
+        setLng(loc.lng);
+      }
+    } catch {
+      // ignore geocode failure
+    }
+  };
 
   const filtered = properties.filter((p) => {
     const matchesSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.location.toLowerCase().includes(search.toLowerCase());
@@ -215,21 +307,59 @@ export default function BrokerPropertiesPage() {
                 className="h-4 w-4 rounded border-gray-300 text-[var(--zcanopy-primary)] focus:ring-[var(--zcanopy-primary)]"
               />
             </div>
-            {locationEditable && (
+            {locationEditable ? (
               <p className="text-xs text-gray-500">
                 You are not currently at the property location? Fill the location field manually instead of using GPS.
               </p>
+            ) : (
+              lat !== 0 && lng !== 0 && (
+                <p className="text-xs text-gray-500">
+                  Location detected from your current position (lat: {lat.toFixed(5)}, lng: {lng.toFixed(5)})
+                </p>
+              )
             )}
-            <div>
+            <div className="relative">
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Location</label>
               <input
+                ref={locationInputRef}
                 type="text"
                 value={createForm.location}
                 onChange={(e) => setCreateForm({ ...createForm, location: e.target.value })}
+                onFocus={() => { if (locationSuggestions.length > 0) setShowLocationDropdown(true); }}
+                onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
                 className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
+                placeholder="Search for a location..."
                 required
+                autoComplete="off"
               />
+              {showLocationDropdown && (
+                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[var(--zcanopy-border)] bg-white shadow-lg">
+                  {locationLoading ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
+                  ) : locationSuggestions.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">No suggestions found</div>
+                  ) : (
+                    locationSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.placeId}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => handleLocationSelect(suggestion.description, suggestion.placeId)}
+                        className="w-full px-4 py-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
+                      >
+                        {suggestion.description}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
+            {!locationEditable && lat !== 0 && lng !== 0 && (
+              <div className="flex items-center gap-2 rounded-xl border border-[var(--zcanopy-border)] bg-gray-50 p-3">
+                <span className="text-xs text-gray-500">Coordinates:</span>
+                <span className="text-xs font-medium text-gray-700">{lat.toFixed(6)}, {lng.toFixed(6)}</span>
+              </div>
+            )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Price (UGX)</label>
               <input
