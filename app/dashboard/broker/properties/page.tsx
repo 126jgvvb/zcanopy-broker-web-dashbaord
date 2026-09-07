@@ -93,17 +93,7 @@ export default function BrokerPropertiesPage() {
         const longitude = pos.coords.longitude;
         setLat(latitude);
         setLng(longitude);
-        try {
-          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-          if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
-          const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
-          const data = await res.json();
-          if (data.results?.[0]?.formatted_address) {
-            setCreateForm((prev) => ({ ...prev, location: data.results[0].formatted_address }));
-          }
-        } catch {
-          // ignore reverse geocode failure
-        }
+        await reverseGeocode(latitude, longitude);
       },
       () => {
         setLat(0);
@@ -111,6 +101,26 @@ export default function BrokerPropertiesPage() {
       },
     );
   }, [locationEditable]);
+
+  useEffect(() => {
+    if (locationEditable) return;
+    if (lat === 0 || lng === 0) return;
+    reverseGeocode(lat, lng);
+  }, [lat, lng, locationEditable]);
+
+  const reverseGeocode = async (latitude: number, longitude: number) => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+    try {
+      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
+      const data = await res.json();
+      if (data.results?.[0]?.formatted_address) {
+        setCreateForm((prev) => ({ ...prev, location: data.results[0].formatted_address }));
+      }
+    } catch {
+      // ignore reverse geocode failure
+    }
+  };
 
   useEffect(() => {
     if (!showCreate) {
@@ -163,6 +173,10 @@ export default function BrokerPropertiesPage() {
 
     return () => clearTimeout(debounceTimer);
   }, [createForm.location, showCreate]);
+
+  const handleLocationBlur = () => {
+    setTimeout(() => setShowLocationDropdown(false), 200);
+  };
 
   const handleLocationSelect = async (description: string, placeId: string) => {
     setCreateForm((prev) => ({ ...prev, location: description }));
@@ -325,7 +339,11 @@ export default function BrokerPropertiesPage() {
                 type="text"
                 value={createForm.location}
                 onChange={(e) => setCreateForm({ ...createForm, location: e.target.value })}
-                onFocus={() => { if (locationSuggestions.length > 0) setShowLocationDropdown(true); }}
+                onFocus={() => {
+                  if (createForm.location.trim().length >= 2) {
+                    setShowLocationDropdown(true);
+                  }
+                }}
                 onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
                 className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
                 placeholder="Search for a location..."
