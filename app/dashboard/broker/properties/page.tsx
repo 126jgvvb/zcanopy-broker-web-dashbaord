@@ -9,6 +9,26 @@ import { COLORS } from '@/lib/theme';
 
 const SCRIPT_ID = 'google-maps-script';
 
+interface Property {
+  id: string;
+  title: string;
+  description: string;
+  propertyType: string;
+  location: string;
+  isAvailable: boolean;
+  createdAt: string;
+  imageUrl?: string[];
+  price?: number;
+  brokerBookingFee?: number;
+}
+
+interface TierLimits {
+  maxProperties: number;
+  maxPhotosPerProperty: number;
+  maxVideosPerProperty: number;
+  maxVideoSizeMB: number;
+}
+
 export default function BrokerPropertiesPage() {
   const [mapsReady, setMapsReady] = useState(false);
 
@@ -35,27 +55,6 @@ export default function BrokerPropertiesPage() {
     document.head.appendChild(script);
   }, []);
 
-  interface Property {
-    id: string;
-    title: string;
-    description: string;
-  propertyType: string;
-  location: string;
-  isAvailable: boolean;
-  createdAt: string;
-  imageUrl?: string[];
-  price?: number;
-  brokerBookingFee?: number;
-}
-
-interface TierLimits {
-  maxProperties: number;
-  maxPhotosPerProperty: number;
-  maxVideosPerProperty: number;
-  maxVideoSizeMB: number;
-}
-
-export default function BrokerPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
