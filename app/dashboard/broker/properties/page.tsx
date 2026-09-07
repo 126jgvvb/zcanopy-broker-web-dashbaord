@@ -113,7 +113,7 @@ export default function BrokerPropertiesPage() {
     try {
       const geocoder = new window.google.maps.Geocoder();
       const result = await new Promise<any>((resolve) => {
-        geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results, status) => {
+        geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results: any, status: any) => {
           if (status === 'OK' && results?.[0]) {
             resolve(results[0]);
           } else {
@@ -155,7 +155,7 @@ export default function BrokerPropertiesPage() {
         const predictions = await new Promise<any[]>((resolve) => {
           service.getPlacePredictions(
             { input: query, types: ['geocode'] },
-            (results, status) => {
+            (results: any, status: any) => {
               if (status === 'OK' && results) {
                 resolve(results);
               } else {
@@ -208,7 +208,7 @@ export default function BrokerPropertiesPage() {
     try {
       const geocoder = new window.google.maps.Geocoder();
       const result = await new Promise<any>((resolve) => {
-        geocoder.geocode({ placeId }, (results, status) => {
+        geocoder.geocode({ placeId }, (results: any, status: any) => {
           if (status === 'OK' && results?.[0]) {
             resolve(results[0]);
           } else {
