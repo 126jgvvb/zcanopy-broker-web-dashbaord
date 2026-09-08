@@ -255,4 +255,10 @@ export const webApi = {
   uploadFile: (file: File, folder = 'properties') => uploadToSpaces(file, folder),
 
   uploadMultipleFiles: (files: File[], folder = 'properties') => uploadMultipleToSpaces(files, folder),
+
+  submitVerificationDocuments: (token: string, body: { idFrontUrl: string; idBackUrl: string }) =>
+    apiFetch('/web/broker/verification/documents', { method: 'POST', token, body, fallback: { success: true, message: 'Documents submitted for review' } }),
+
+  getVerificationStatus: (token: string) =>
+    apiFetch<{ isVerified: boolean; idFrontUrl?: string; idBackUrl?: string; verificationStatus: string }>('/web/broker/verification/status', { token, fallback: { isVerified: false, verificationStatus: 'unsubmitted' } }),
 };
