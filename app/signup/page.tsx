@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { webApi } from '@/lib/api';
-import { IdCard, Chrome } from 'lucide-react';
+import { IdCard } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
