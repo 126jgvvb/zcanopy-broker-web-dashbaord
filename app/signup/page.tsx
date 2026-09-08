@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { webApi } from '@/lib/api';
-import { IdCard } from 'lucide-react';
+import { IdCard, Chrome } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
@@ -59,6 +59,9 @@ export default function SignUpPage() {
     confirmPassword: '',
     brokerBrandName: '',
   });
+  const [setupPassword, setSetupPassword] = useState('');
+  const [setupConfirmPassword, setSetupConfirmPassword] = useState('');
+  const [setupBrandName, setSetupBrandName] = useState('');
   const [idFront, setIdFront] = useState<File | null>(null);
   const [idBack, setIdBack] = useState<File | null>(null);
   const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null);
@@ -67,6 +70,45 @@ export default function SignUpPage() {
   const [brokerCode, setBrokerCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!window.google?.accounts?.id) return;
+    window.google.accounts.id.initialize({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+      callback: async (response) => {
+        if (!response.credential) return;
+        setGoogleLoading(true);
+        try {
+          const data = await webApi.registerBroker({
+            fullName: '',
+            email: '',
+            phoneNumber: '',
+            googleId: response.credential,
+            idFrontUrl: '',
+            idBackUrl: '',
+          });
+          if ((data as any).brokerCode) {
+            router.push('/login');
+          } else {
+            setError('Google sign-up failed. Please try again.');
+          }
+        } catch {
+          setError('Google sign-up failed. Please try again.');
+        } finally {
+          setGoogleLoading(false);
+        }
+      },
+    });
+    if (googleButtonRef.current) {
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        width: '100%',
+        text: 'continue_with',
+      });
+    }
+  }, []);
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -89,11 +131,6 @@ export default function SignUpPage() {
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
 
     if (!idFront || !idBack) {
       setError('Please upload both ID images');
@@ -158,22 +195,36 @@ export default function SignUpPage() {
   };
 
   const handleWelcomeComplete = async () => {
+    setError('');
+    
+    if (setupPassword !== setupConfirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    if (!setupPassword || setupPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await webApi.brokerSetup({
         brokerCode,
-        password: form.password,
+        password: setupPassword,
         deviceId: 'web-dashboard',
-        brokerBrandName: form.brokerBrandName || undefined,
+        brokerBrandName: setupBrandName || undefined,
       });
       if (!(data as any).success) {
         setError((data as any).message || 'Setup failed');
         return;
       }
 
-      localStorage.setItem('zcanopy_token', (data as any).token || (data as any).sessionToken);
+      const loginData = await webApi.brokerLogin(brokerCode, setupPassword, form.email);
+      
+      localStorage.setItem('zcanopy_token', (loginData as any).token);
       localStorage.setItem('zcanopy_role', 'broker');
-      localStorage.setItem('zcanopy_user', JSON.stringify(data));
+      localStorage.setItem('zcanopy_user', JSON.stringify(loginData));
       router.push('/dashboard');
     } catch {
       setError('Network error. Please try again.');
@@ -200,6 +251,9 @@ export default function SignUpPage() {
 
         {step === 'details' && (
           <form onSubmit={handleDetailsSubmit} className="space-y-4">
+            <div ref={googleButtonRef} className="flex justify-center" />
+            {googleLoading && <p className="text-center text-sm text-gray-500">Signing in with Google...</p>}
+
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Full Name</label>
               <input type="text" value={form.fullName} onChange={update('fullName')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required />
@@ -230,21 +284,6 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
-              <input type="password" value={form.password} onChange={update('password')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required minLength={6} />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm Password</label>
-              <input type="password" value={form.confirmPassword} onChange={update('confirmPassword')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" required minLength={6} />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Brand Name (optional)</label>
-              <input type="text" value={form.brokerBrandName} onChange={update('brokerBrandName')} className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" placeholder="Mutaasa Brokers" />
-            </div>
-
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button type="submit" disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-3 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
@@ -272,12 +311,52 @@ export default function SignUpPage() {
         )}
 
         {step === 'welcome' && (
-          <div className="space-y-4 text-center">
+          <div className="space-y-4">
             <p className="text-lg font-semibold text-[var(--zcanopy-card-brown)]">Your broker code is</p>
             <p className="text-3xl font-bold text-[var(--zcanopy-primary)]">{brokerCode}</p>
-            <p className="text-sm text-gray-500">Save this code. You will need it to log in.</p>
+            <p className="text-sm text-gray-500">Save this code. Now create your password and brand name.</p>
+            
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+              <input 
+                type="password" 
+                value={setupPassword} 
+                onChange={(e) => setSetupPassword(e.target.value)} 
+                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" 
+                required 
+                minLength={6} 
+                placeholder="Min 6 characters"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm Password</label>
+              <input 
+                type="password" 
+                value={setupConfirmPassword} 
+                onChange={(e) => setSetupConfirmPassword(e.target.value)} 
+                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" 
+                required 
+                minLength={6} 
+                placeholder="Re-enter password"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Brand Name (optional)</label>
+              <input 
+                type="text" 
+                value={setupBrandName} 
+                onChange={(e) => setSetupBrandName(e.target.value)} 
+                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm" 
+                placeholder="Mutaasa Brokers"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
             <button onClick={handleWelcomeComplete} disabled={loading} className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-3 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
-              {loading ? 'Setting up...' : 'Go to Dashboard'}
+              {loading ? 'Setting up & logging in...' : 'Complete Setup & Login'}
             </button>
           </div>
         )}

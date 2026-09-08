@@ -41,6 +41,7 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
           }}
         />
+        <script src="https://accounts.google.com/gsi/client" async defer />
       </head>
       <body className="min-h-full flex flex-col">
         {children}
