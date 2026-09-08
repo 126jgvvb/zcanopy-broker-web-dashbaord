@@ -147,6 +147,12 @@ export const webApi = {
       { method: 'POST', body: { brokerCode, password, email, deviceId: 'web-dashboard' }, fallback: mockData.brokerLogin() },
     ),
 
+  brokerGoogleLogin: (googleId: string) =>
+    apiFetch<{ id: string; username: string; email: string; role: string; brokerCode: string; token: string }>(
+      '/web/auth/broker/google',
+      { method: 'POST', body: { googleId, deviceId: 'web-dashboard' }, fallback: mockData.brokerLogin() },
+    ),
+
   brokerSetup: (body: unknown) =>
     apiFetch('/web/auth/broker/setup', { method: 'POST', body, fallback: { success: true, token: 'mock-token-broker' } }),
 

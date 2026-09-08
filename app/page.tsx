@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { webApi } from '@/lib/api';
 import { COLORS } from '@/lib/theme';
@@ -13,6 +13,42 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!window.google?.accounts?.id) return;
+    window.google.accounts.id.initialize({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+      callback: async (response: { credential?: string }) => {
+        if (!response.credential) return;
+        setGoogleLoading(true);
+        try {
+          const data = await webApi.brokerGoogleLogin(response.credential);
+          const token = (data as any).token;
+          if (!token) {
+            setError('Google sign-in failed. Please try again.');
+            return;
+          }
+          localStorage.setItem('zcanopy_token', token);
+          localStorage.setItem('zcanopy_role', 'broker');
+          localStorage.setItem('zcanopy_user', JSON.stringify(data));
+          router.push('/dashboard');
+        } catch {
+          setError('Google sign-in failed. Please try again.');
+        } finally {
+          setGoogleLoading(false);
+        }
+      },
+    });
+    if (googleButtonRef.current) {
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        width: '100%',
+        text: 'signin_with',
+      });
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +125,15 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <div className="mt-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-[var(--zcanopy-border)]" />
+          <span className="text-xs text-[var(--zcanopy-muted)]">or</span>
+          <div className="h-px flex-1 bg-[var(--zcanopy-border)]" />
+        </div>
+
+        <div ref={googleButtonRef} className="mt-4 flex justify-center" />
+        {googleLoading && <p className="text-center text-sm text-gray-500">Signing in with Google...</p>}
 
         <p className="mt-7 text-center text-sm text-[var(--zcanopy-muted)]">
           Not a broker?{' '}
