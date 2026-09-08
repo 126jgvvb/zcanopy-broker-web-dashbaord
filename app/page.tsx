@@ -45,12 +45,12 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(209,160,84,0.22),transparent_55%)]" />
       <div className="relative w-full max-w-md rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-9 shadow-[var(--zcanopy-shadow)]">
         <div className="mb-8 text-center">
-          <span
-            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl font-[family-name:var(--font-cormorant)] text-3xl font-semibold shadow-lg"
-            style={{ backgroundColor: COLORS.accentGold, color: COLORS.cardBrown }}
-          >
-            Z
-          </span>
+          <img
+            src="/logo.svg"
+            alt="ZCanopy"
+            className="mx-auto h-14 w-14 object-contain"
+            style={{ mixBlendMode: 'multiply' }}
+          />
           <p className="zc-kicker mt-5">Broker console</p>
           <h1 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">Welcome back</h1>
           <p className="mt-2 text-sm text-[var(--zcanopy-muted)]">Sign in to manage your listings.</p>

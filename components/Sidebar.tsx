@@ -76,12 +76,12 @@ export default function Sidebar({ role, user, onLogout, isOpen, onToggle }: Side
           <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-[var(--zcanopy-accent-gold)]/20 blur-2xl" />
           <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-2xl font-[family-name:var(--font-cormorant)] text-2xl font-semibold shadow-lg"
-              style={{ backgroundColor: COLORS.accentGold, color: COLORS.cardBrown }}
-            >
-              Z
-            </span>
+            <img
+              src="/logo.svg"
+              alt="ZCanopy"
+              className="h-10 w-10 object-contain"
+              style={{ mixBlendMode: 'multiply' }}
+            />
             <div>
               <span className="font-[family-name:var(--font-cormorant)] text-2xl leading-none">ZCanopy</span>
               <span className="mt-1 block text-[10px] uppercase tracking-[0.18em] text-white/55">

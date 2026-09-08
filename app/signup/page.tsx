@@ -238,12 +238,12 @@ export default function SignUpPage() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(209,160,84,0.22),transparent_55%)]" />
       <div className="relative w-full max-w-md rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
         <div className="mb-5 text-center">
-          <span
-            className="inline-flex h-12 w-12 items-center justify-center rounded-2xl font-[family-name:var(--font-cormorant)] text-2xl font-semibold shadow-lg"
-            style={{ backgroundColor: COLORS.accentGold, color: COLORS.cardBrown }}
-          >
-            Z
-          </span>
+          <img
+            src="/logo.svg"
+            alt="ZCanopy"
+            className="mx-auto h-12 w-12 object-contain"
+            style={{ mixBlendMode: 'multiply' }}
+          />
           <p className="zc-kicker mt-3">Get started</p>
           <h1 className="mt-1 text-2xl text-[var(--zcanopy-card-brown)]">Broker Registration</h1>
           <p className="mt-1 text-xs text-[var(--zcanopy-muted)]">Create your broker account</p>
