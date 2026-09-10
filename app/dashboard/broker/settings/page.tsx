@@ -15,6 +15,9 @@ export default function BrokerSettingsPage() {
   const [message, setMessage] = useState('');
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', location: '' });
   const [passwordForm, setPasswordForm] = useState({ current: '', newPassword: '', confirm: '' });
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
   const [notifications, setNotifications] = useState({ newForYou: true, accountActivity: true, autoPlay: true });
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
@@ -68,13 +71,31 @@ export default function BrokerSettingsPage() {
     if (!token) return;
     setSaving(true);
     try {
-      await webApi.brokerChangePassword(token, { currentPassword: passwordForm.current, newPassword: passwordForm.newPassword });
+      await webApi.brokerChangePassword(token, { otp: otpValue, newPassword: passwordForm.newPassword, confirmPassword: passwordForm.confirm });
       setMessage('Password changed successfully');
       setPasswordForm({ current: '', newPassword: '', confirm: '' });
+      setOtpValue('');
+      setOtpSent(false);
     } catch {
       setMessage('Failed to change password');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRequestOtp = async () => {
+    setMessage('');
+    const token = localStorage.getItem('zcanopy_token');
+    if (!token) return;
+    setOtpLoading(true);
+    try {
+      await webApi.brokerRequestChangePasswordOtp(token);
+      setMessage('OTP sent to your registered email');
+      setOtpSent(true);
+    } catch {
+      setMessage('Failed to send OTP');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -162,47 +183,60 @@ export default function BrokerSettingsPage() {
       </Panel>
 
       <Panel title="Change Password">
-        <form onSubmit={handleChangePassword} className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Current Password</label>
-            <input
-              type="password"
-              value={passwordForm.current}
-              onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">New Password</label>
-            <input
-              type="password"
-              value={passwordForm.newPassword}
-              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
-              required
-              minLength={6}
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm New Password</label>
-            <input
-              type="password"
-              value={passwordForm.confirm}
-              onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
-              required
-              minLength={6}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
-          >
-            {saving ? 'Updating...' : 'Change Password'}
-          </button>
-        </form>
+        {!otpSent ? (
+          <form onSubmit={(e) => { e.preventDefault(); handleRequestOtp(); }} className="space-y-4">
+            <p className="text-sm text-gray-600">Click the button below to send a verification code to your registered email address.</p>
+            <button
+              type="submit"
+              disabled={otpLoading}
+              className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
+            >
+              {otpLoading ? 'Sending...' : 'Send OTP to Email'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Verification Code (OTP)</label>
+              <input
+                type="text"
+                value={otpValue}
+                onChange={(e) => setOtpValue(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">New Password</label>
+              <input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                required
+                minLength={6}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                required
+                minLength={6}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
+            >
+              {saving ? 'Updating...' : 'Change Password'}
+            </button>
+          </form>
+        )}
       </Panel>
 
       <Panel title="Notifications">

@@ -228,6 +228,9 @@ export const webApi = {
   brokerChangePassword: (token: string, body: unknown) =>
     apiFetch('/web/broker/change-password', { method: 'POST', token, body, fallback: { success: true, message: 'Password changed' } }),
 
+  brokerRequestChangePasswordOtp: (token: string) =>
+    apiFetch('/web/broker/change-password/request-otp', { method: 'POST', token, body: {}, fallback: { success: true, message: 'OTP sent' } }),
+
   brokerHelp: (token: string, body: unknown) =>
     apiFetch('/web/broker/help', { method: 'POST', token, body, fallback: { success: true, message: 'Support request submitted' } }),
 
@@ -267,4 +270,7 @@ export const webApi = {
 
   getVerificationStatus: (token: string) =>
     apiFetch<{ isVerified: boolean; idFrontUrl?: string; idBackUrl?: string; verificationStatus: string }>('/web/broker/verification/status', { token, fallback: { isVerified: false, verificationStatus: 'unsubmitted' } }),
+
+  brokerLogout: (token: string) =>
+    apiFetch('/web/broker/logout', { method: 'POST', token, body: {}, fallback: { success: true, message: 'Logged out successfully' } }),
 };

@@ -7,6 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import ZLoadingIndicator from '@/components/ZLoadingIndicator';
 import { Menu } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
+import { webApi } from '@/lib/api';
 
 export default function DashboardLayout({
   children,
@@ -40,10 +41,19 @@ export default function DashboardLayout({
     }
   }, [loading, user, router]);
 
-  const logout = () => {
+  const logout = async () => {
+    const token = localStorage.getItem('zcanopy_token');
+    if (token) {
+      try {
+        await webApi.brokerLogout(token);
+      } catch {
+        // ignore logout errors
+      }
+    }
     localStorage.removeItem('zcanopy_token');
     localStorage.removeItem('zcanopy_role');
     localStorage.removeItem('zcanopy_user');
+    router.push('/');
   };
 
   if (loading) {
