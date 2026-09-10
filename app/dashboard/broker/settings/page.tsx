@@ -18,6 +18,9 @@ export default function BrokerSettingsPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
+  const [deleteOtpSent, setDeleteOtpSent] = useState(false);
+  const [deleteOtpValue, setDeleteOtpValue] = useState('');
+  const [deleteOtpLoading, setDeleteOtpLoading] = useState(false);
   const [notifications, setNotifications] = useState({ newForYou: true, accountActivity: true, autoPlay: true });
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
@@ -106,12 +109,28 @@ export default function BrokerSettingsPage() {
     router.push('/');
   };
 
+  const handleRequestDeleteAccountOtp = async () => {
+    setMessage('');
+    const token = localStorage.getItem('zcanopy_token');
+    if (!token) return;
+    setDeleteOtpLoading(true);
+    try {
+      await webApi.brokerRequestDeleteAccountOtp(token);
+      setMessage('Verification code sent to your email');
+      setDeleteOtpSent(true);
+    } catch {
+      setMessage('Failed to send verification code');
+    } finally {
+      setDeleteOtpLoading(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     const token = localStorage.getItem('zcanopy_token');
-    if (!token || !deleteConfirm) return;
+    if (!token || !deleteOtpValue) return;
     setSaving(true);
     try {
-      await webApi.brokerDeleteAccount(token, { password: deleteConfirm });
+      await webApi.brokerDeleteAccount(token, { emailOtp: deleteOtpValue });
       localStorage.removeItem('zcanopy_token');
       localStorage.removeItem('zcanopy_role');
       localStorage.removeItem('zcanopy_user');
@@ -300,20 +319,32 @@ export default function BrokerSettingsPage() {
           <div className="rounded-xl border border-red-200 bg-red-50 p-4">
             <p className="font-medium text-red-800">Delete Account</p>
             <p className="mt-1 text-sm text-red-600">This action cannot be undone. All your data will be permanently removed.</p>
-            <input
-              type="text"
-              value={deleteConfirm}
-              onChange={(e) => setDeleteConfirm(e.target.value)}
-              placeholder="Type 'DELETE' to confirm"
-              className="mt-3 w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
-            />
-            <button
-              onClick={handleDeleteAccount}
-              disabled={saving || deleteConfirm !== 'DELETE'}
-              className="mt-3 w-full rounded-xl bg-red-600 py-2.5 text-white shadow-md transition-all hover:bg-red-700 disabled:opacity-50"
-            >
-              {saving ? 'Deleting...' : 'Permanently Delete Account'}
-            </button>
+            {!deleteOtpSent ? (
+              <button
+                onClick={handleRequestDeleteAccountOtp}
+                disabled={deleteOtpLoading}
+                className="mt-3 w-full rounded-xl bg-red-600 py-2.5 text-white shadow-md transition-all hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteOtpLoading ? 'Sending...' : 'Send verification code to email'}
+              </button>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <input
+                  type="text"
+                  value={deleteOtpValue}
+                  onChange={(e) => setDeleteOtpValue(e.target.value)}
+                  placeholder="Enter verification code"
+                  className="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                />
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={saving || !deleteOtpValue}
+                  className="w-full rounded-xl bg-red-600 py-2.5 text-white shadow-md transition-all hover:bg-red-700 disabled:opacity-50"
+                >
+                  {saving ? 'Deleting...' : 'Permanently Delete Account'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </Panel>

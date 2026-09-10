@@ -231,6 +231,9 @@ export const webApi = {
   brokerRequestChangePasswordOtp: (token: string) =>
     apiFetch('/web/broker/change-password/request-otp', { method: 'POST', token, body: {}, fallback: { success: true, message: 'OTP sent' } }),
 
+  brokerRequestDeleteAccountOtp: (token: string) =>
+    apiFetch('/web/broker/account/delete/request-otp', { method: 'POST', token, body: {}, fallback: { success: true, message: 'OTP sent' } }),
+
   brokerHelp: (token: string, body: unknown) =>
     apiFetch('/web/broker/help', { method: 'POST', token, body, fallback: { success: true, message: 'Support request submitted' } }),
 
