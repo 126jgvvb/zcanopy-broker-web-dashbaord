@@ -26,6 +26,11 @@ export default function BrokerHelpPage() {
     setErrorMsg('');
     try {
       const token = localStorage.getItem('zcanopy_token');
+      if (!token) {
+        setErrorMsg('Session expired. Please log in again.');
+        setSending(false);
+        return;
+      }
       const res: any = await webApi.brokerHelp(token, {
         email: form.email,
         phone: '',
