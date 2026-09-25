@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { webApi } from '@/lib/api';
+import { webApi, uploadToSpaces } from '@/lib/api';
 import { IdCard } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 
@@ -139,14 +139,17 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      const [idFrontBase64, idBackBase64] = await Promise.all([toBase64(idFront), toBase64(idBack)]);
+      const [idFrontUrl, idBackUrl] = await Promise.all([
+        uploadToSpaces(idFront, 'verification'),
+        uploadToSpaces(idBack, 'verification'),
+      ]);
 
       const data = await webApi.registerBroker({
         fullName: form.fullName,
         email: form.email,
         phoneNumber: form.phoneNumber,
-        idFrontUrl: idFrontBase64,
-        idBackUrl: idBackBase64,
+        idFrontUrl,
+        idBackUrl,
       });
       if ((data as any).message && !(data as any).brokerId) {
         setError((data as any).message || 'Registration failed');
@@ -220,7 +223,7 @@ export default function SignUpPage() {
         return;
       }
 
-      const loginData = await webApi.brokerLogin(brokerCode, setupPassword, form.email);
+      const loginData = await webApi.brokerEmailLogin(form.email, setupPassword);
       
       localStorage.setItem('zcanopy_token', (loginData as any).token);
       localStorage.setItem('zcanopy_role', 'broker');

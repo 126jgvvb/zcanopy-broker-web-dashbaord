@@ -56,7 +56,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await webApi.brokerLogin(email, password);
+      const result = await webApi.login(email, password, 'broker');
 
       const token = (result as any).token;
       if (!token) {

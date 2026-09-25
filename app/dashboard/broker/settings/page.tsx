@@ -13,6 +13,7 @@ export default function BrokerSettingsPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', location: '' });
   const [passwordForm, setPasswordForm] = useState({ current: '', newPassword: '', confirm: '' });
   const [otpSent, setOtpSent] = useState(false);
@@ -30,12 +31,13 @@ export default function BrokerSettingsPage() {
 
     webApi.brokerProfile(token)
       .then((data: any) => {
-        setProfile(data);
+        const broker = data?.broker || data;
+        setProfile(broker);
         setForm({
-          fullName: data.username || data.fullName || '',
-          email: data.email || '',
-          phone: data.phoneNumber || '',
-          location: data.location || '',
+          fullName: broker.username || broker.fullName || '',
+          email: broker.email || '',
+          phone: broker.phoneNumber || '',
+          location: broker.location || '',
         });
       })
       .catch(() => setError('Failed to load profile'))
@@ -44,7 +46,6 @@ export default function BrokerSettingsPage() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     const token = localStorage.getItem('zcanopy_token');
     if (!token) return;
     setSaving(true);
@@ -55,9 +56,9 @@ export default function BrokerSettingsPage() {
         phoneNumber: form.phone,
         location: form.location,
       });
-      setMessage('Profile updated successfully');
+      setSuccessDialog({ open: true, title: 'Profile Updated', message: 'Your profile has been updated successfully.' });
     } catch {
-      setMessage('Failed to update profile');
+      setSuccessDialog({ open: true, title: 'Update Failed', message: 'Failed to update profile. Please try again.' });
     } finally {
       setSaving(false);
     }
@@ -65,7 +66,6 @@ export default function BrokerSettingsPage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('');
     if (passwordForm.newPassword !== passwordForm.confirm) {
       setMessage('Passwords do not match');
       return;
@@ -74,13 +74,18 @@ export default function BrokerSettingsPage() {
     if (!token) return;
     setSaving(true);
     try {
-      await webApi.brokerChangePassword(token, { otp: otpValue, newPassword: passwordForm.newPassword, confirmPassword: passwordForm.confirm });
-      setMessage('Password changed successfully');
+      const res: any = await webApi.brokerChangePassword(token, { emailOtp: otpValue, newPassword: passwordForm.newPassword, confirmPassword: passwordForm.confirm });
+      if (res?.success === false) {
+        setMessage(res.message || 'Failed to change password');
+        return;
+      }
       setPasswordForm({ current: '', newPassword: '', confirm: '' });
       setOtpValue('');
       setOtpSent(false);
-    } catch {
-      setMessage('Failed to change password');
+      setSuccessDialog({ open: true, title: 'Password Changed', message: 'Your password has been updated successfully.' });
+    } catch (err: any) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to change password';
+      setMessage(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -151,7 +156,7 @@ export default function BrokerSettingsPage() {
         <p className="text-gray-500">Manage your account and preferences.</p>
       </div>
 
-      {message && <p className="text-sm text-green-600">{message}</p>}
+      {message && <p className="text-sm text-red-600">{message}</p>}
 
       <Panel title="Profile Information">
         <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -348,6 +353,20 @@ export default function BrokerSettingsPage() {
           </div>
         </div>
       </Panel>
+      {successDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">{successDialog.title}</h3>
+            <p className="mt-2 text-sm text-gray-600">{successDialog.message}</p>
+            <button
+              onClick={() => setSuccessDialog((prev) => ({ ...prev, open: false }))}
+              className="mt-4 w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)]"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

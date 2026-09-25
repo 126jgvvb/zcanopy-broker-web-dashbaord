@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { webApi } from '@/lib/api';
+import { webApi, uploadToSpaces } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import GoogleMap from '@/components/GoogleMap';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
@@ -20,8 +20,7 @@ interface Property {
   videoUrl?: string[];
   price?: number;
   brokerBookingFee?: number;
-  latitude?: number;
-  longitude?: number;
+  postgisSpatialField?: string;
 }
 
 interface TierLimits {
@@ -47,9 +46,10 @@ export default function BrokerPropertyDetailPage() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
   const [tier, setTier] = useState({ name: 'Prop', limits: {} as TierLimits });
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [mediaSaving, setMediaSaving] = useState(false);
+  const [mediaDialog, setMediaDialog] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');
@@ -60,7 +60,7 @@ export default function BrokerPropertyDetailPage() {
       webApi.brokerSubscriptionDetails(token),
     ])
       .then(([data, subData]: any) => {
-        const prop = data.property || data;
+        const prop = data?.property || data?.properties?.[0] || data;
         setProperty(prop);
         setPhotos(prop.imageUrl?.filter(Boolean) || []);
         setVideos(prop.videoUrl?.filter(Boolean) || []);
@@ -129,31 +129,72 @@ export default function BrokerPropertyDetailPage() {
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
-    const newPhotos = Array.from(files).map((f) => URL.createObjectURL(f));
-    if (photos.length + newPhotos.length > tier.limits.maxPhotosPerProperty) {
-      alert(`Maximum ${tier.limits.maxPhotosPerProperty} photos allowed for ${tier.name} plan`);
+    if (!files || files.length === 0) return;
+    if (!property) return;
+    const newPhotos = Array.from(files);
+
+    const remainingSlots = tier.limits.maxPhotosPerProperty - photos.length;
+    if (remainingSlots <= 0) {
+      setMediaDialog({
+        type: 'error',
+        message: `Maximum ${tier.limits.maxPhotosPerProperty} photos already uploaded for ${tier.name} plan`,
+      });
       return;
     }
-    setPhotos((prev) => [...prev, ...newPhotos]);
+    if (newPhotos.length > remainingSlots) {
+      setMediaDialog({
+        type: 'error',
+        message: `You can only upload ${remainingSlots} more photo(s) on the ${tier.name} plan`,
+      });
+      return;
+    }
+
+    setPhotoUploading(true);
+    try {
+      const urls = await Promise.all(newPhotos.map((f) => uploadToSpaces(f, 'properties')));
+      setPhotos((prev) => [...prev, ...urls]);
+    } catch {
+      setMediaDialog({ type: 'error', message: 'Failed to upload photos. Please try again.' });
+    } finally {
+      setPhotoUploading(false);
+    }
   };
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !property) return;
     if (tier.limits.maxVideosPerProperty === 0) {
-      alert('Video upload is not available on your current plan');
+      setMediaDialog({
+        type: 'error',
+        message: 'Video upload is not available on your current plan',
+      });
       return;
     }
-    setVideos((prev) => [...prev, URL.createObjectURL(file)]);
+    if (videos.length >= tier.limits.maxVideosPerProperty) {
+      setMediaDialog({
+        type: 'error',
+        message: `Maximum ${tier.limits.maxVideosPerProperty} video(s) already uploaded for ${tier.name} plan`,
+      });
+      return;
+    }
+    setVideoUploading(true);
+    try {
+      const url = await uploadToSpaces(file, 'properties');
+      setVideos((prev) => [...prev, url]);
+    } catch {
+      setMediaDialog({ type: 'error', message: 'Failed to upload video. Please try again.' });
+    } finally {
+      setVideoUploading(false);
+    }
   };
 
   const handleSaveMedia = async () => {
     const token = localStorage.getItem('zcanopy_token');
     if (!token || !property) return;
     setMediaSaving(true);
+    setMediaDialog(null);
     try {
       await webApi.updateProperty(token, property.id, {
         title: property.title,
@@ -164,9 +205,9 @@ export default function BrokerPropertyDetailPage() {
         imageUrl: photos,
         videoUrl: videos,
       });
-      alert('Media updated successfully');
+      setMediaDialog({ type: 'success', message: 'Media updated successfully' });
     } catch {
-      alert('Failed to update media');
+      setMediaDialog({ type: 'error', message: 'Failed to update media. Please try again.' });
     } finally {
       setMediaSaving(false);
     }
@@ -179,10 +220,19 @@ export default function BrokerPropertyDetailPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="zc-kicker">{property.propertyType}</p>
-          <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">{property.title}</h2>
-          <p className="mt-1 text-[var(--zcanopy-muted)]">{property.location}</p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push('/dashboard/broker/properties')}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] text-gray-600 transition-all hover:bg-gray-100"
+            aria-label="Back to properties"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <p className="zc-kicker">{property.propertyType}</p>
+            <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">{property.title}</h2>
+            <p className="mt-1 text-[var(--zcanopy-muted)]">{property.location}</p>
+          </div>
         </div>
         <div className="flex gap-3">
           <button
@@ -305,7 +355,12 @@ export default function BrokerPropertyDetailPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <Panel title={`Photos (${photos.length}/${tier.limits.maxPhotosPerProperty})`}>
-            {photos.length > 0 ? (
+            {photoUploading ? (
+              <div className="py-12 text-center">
+                <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-[var(--zcanopy-primary)] border-t-transparent"></div>
+                <p className="text-sm text-gray-600">Uploading photos...</p>
+              </div>
+            ) : photos.length > 0 ? (
               <div className="relative">
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gray-100">
                   <img src={photos[currentPhotoIndex]} alt={property.title} className="h-full w-full object-cover" />
@@ -351,22 +406,28 @@ export default function BrokerPropertyDetailPage() {
               <div className="py-12 text-center text-sm text-gray-500">No photos uploaded</div>
             )}
             <div className="mt-4">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[var(--zcanopy-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[var(--zcanopy-primary-alt)]"
-              />
+               <input
+                 type="file"
+                 accept="image/*"
+                 multiple
+                 disabled={photoUploading}
+                 onChange={handlePhotoUpload}
+                 className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[var(--zcanopy-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
+               />
             </div>
           </Panel>
 
           <Panel title={`Videos (${videos.length}/${tier.limits.maxVideosPerProperty})`}>
-            {videos.length > 0 ? (
+            {videoUploading ? (
+              <div className="py-12 text-center">
+                <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-[var(--zcanopy-primary)] border-t-transparent"></div>
+                <p className="text-sm text-gray-600">Uploading video...</p>
+              </div>
+            ) : videos.length > 0 ? (
               <div className="space-y-4">
                 {videos.map((video, idx) => (
-                  <div key={idx} className="relative overflow-hidden rounded-2xl bg-gray-100">
-                    <video src={video} controls className="w-full" />
+                  <div key={idx} className="relative aspect-video w-full overflow-hidden rounded-2xl bg-gray-100">
+                    <video src={video} controls className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setVideos((prev) => prev.filter((_, i) => i !== idx))}
@@ -381,12 +442,13 @@ export default function BrokerPropertyDetailPage() {
               <div className="py-12 text-center text-sm text-gray-500">No videos uploaded</div>
             )}
             <div className="mt-4">
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleVideoUpload}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[var(--zcanopy-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[var(--zcanopy-primary-alt)]"
-              />
+               <input
+                 type="file"
+                 accept="video/*"
+                 disabled={videoUploading}
+                 onChange={handleVideoUpload}
+                 className="block w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[var(--zcanopy-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
+               />
             </div>
           </Panel>
 
@@ -398,6 +460,49 @@ export default function BrokerPropertyDetailPage() {
             {mediaSaving ? 'Saving Media...' : 'Save Media Changes'}
           </button>
         </div>
+
+        {mediaDialog && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+              <div className="mb-4 flex items-center gap-3">
+                {mediaDialog.type === 'success' ? (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-600">
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+                    <X className="h-6 w-6" />
+                  </div>
+                )}
+                <h3 className="text-lg font-bold text-gray-900">
+                  {mediaDialog.type === 'success' ? 'Success' : 'Error'}
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-6">{mediaDialog.message}</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setMediaDialog(null)}
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  OK
+                </button>
+                {mediaDialog.type === 'success' && (
+                  <button
+                    onClick={() => {
+                      setMediaDialog(null);
+                      router.push('/dashboard/broker/properties');
+                    }}
+                    className="rounded-xl bg-[var(--zcanopy-primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--zcanopy-primary-alt)]"
+                  >
+                    View All Properties
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-6">
           <Panel title="Property Details">
@@ -432,25 +537,30 @@ export default function BrokerPropertyDetailPage() {
           </Panel>
 
           <Panel title="Location">
-            {(property.latitude != null && property.longitude != null && property.latitude !== 0 && property.longitude !== 0) ? (
-              <div className="space-y-3">
-                <GoogleMap lat={property.latitude} lng={property.longitude} title={property.title} height={300} />
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${property.latitude},${property.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open in Google Maps
-                </a>
-              </div>
-            ) : (
-              <div className="py-12 text-center text-sm text-gray-500">
-                <p>This property was not lively captured on site,please refer to the location text</p>
-                <p className="mt-1 text-xs text-gray-400">Location: {property.location}</p>
-              </div>
-            )}
+            {(() => {
+              const parsed = property.postgisSpatialField ? (() => { try { return JSON.parse(property.postgisSpatialField); } catch { return null; } })() : null;
+              const lat = parsed?.lat;
+              const lng = parsed?.lng;
+              return (lat != null && lng != null && lat !== 0 && lng !== 0) ? (
+                <div className="space-y-3">
+                  <GoogleMap lat={lat} lng={lng} title={property.title} height={300} />
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open in Google Maps
+                  </a>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-sm text-gray-500">
+                  <p>This property was not lively captured on site,please refer to the location text</p>
+                  <p className="mt-1 text-xs text-gray-400">Location: {property.location}</p>
+                </div>
+              );
+            })()}
           </Panel>
         </div>
       </div>

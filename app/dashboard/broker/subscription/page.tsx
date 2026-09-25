@@ -13,7 +13,11 @@ interface Tier {
   currency: string;
   expiryDays: number;
   advantages: string[];
-  limits: Record<string, number>;
+  limits?: Record<string, number>;
+  maxProperties?: number;
+  maxPhotosPerProperty?: number;
+  maxVideosPerProperty?: number;
+  maxVideoSizeMB?: number;
 }
 
 interface PaymentForm {
@@ -102,7 +106,7 @@ export default function BrokerSubscriptionPage() {
 
   const formatPrice = (tier: Tier) => {
     if (tier.price === 0) return 'Free';
-    const grouped = tier.price.toString().replaceAll(/\d{1,3}(?=(\d{3})+(?!\d))/g, '$1,');
+    const grouped = tier.price.toString().replace(/\d{1,3}(?=(\d{3})+(?!\d))/g, '$&,');
     return `${tier.currency} ${grouped}`;
   };
 
@@ -113,6 +117,17 @@ export default function BrokerSubscriptionPage() {
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     return `${days}d ${hours}h remaining`;
+  };
+
+  const getLimits = (tier?: Tier | null) => {
+    if (!tier) return { maxProperties: 0, maxPhotosPerProperty: 0, maxVideosPerProperty: 0, maxVideoSizeMB: 0 };
+    if (tier.limits) return tier.limits;
+    return {
+      maxProperties: (tier as any).maxProperties ?? 0,
+      maxPhotosPerProperty: (tier as any).maxPhotosPerProperty ?? 0,
+      maxVideosPerProperty: (tier as any).maxVideosPerProperty ?? 0,
+      maxVideoSizeMB: (tier as any).maxVideoSizeMB ?? 0,
+    };
   };
 
   if (loading) return <LoadingState label="Loading subscription" />;
@@ -143,22 +158,29 @@ export default function BrokerSubscriptionPage() {
           </div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl bg-black/20 p-3 text-center">
-            <p className="text-xs text-white/70">Max Properties</p>
-            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxProperties ?? 0}</p>
-          </div>
-          <div className="rounded-xl bg-black/20 p-3 text-center">
-            <p className="text-xs text-white/70">Photos/Property</p>
-            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxPhotosPerProperty ?? 0}</p>
-          </div>
-          <div className="rounded-xl bg-black/20 p-3 text-center">
-            <p className="text-xs text-white/70">Videos/Property</p>
-            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxVideosPerProperty ?? 0}</p>
-          </div>
-          <div className="rounded-xl bg-black/20 p-3 text-center">
-            <p className="text-xs text-white/70">Max Video Size</p>
-            <p className="text-lg font-semibold text-white">{activeTierData?.limits?.maxVideoSizeMB ? `${activeTierData.limits.maxVideoSizeMB}MB` : '500MB'}</p>
-          </div>
+          {(() => {
+            const limits = getLimits(activeTierData);
+            return (
+              <>
+                <div className="rounded-xl bg-black/20 p-3 text-center">
+                  <p className="text-xs text-white/70">Max Properties</p>
+                  <p className="text-lg font-semibold text-white">{limits.maxProperties ?? 0}</p>
+                </div>
+                <div className="rounded-xl bg-black/20 p-3 text-center">
+                  <p className="text-xs text-white/70">Photos/Property</p>
+                  <p className="text-lg font-semibold text-white">{limits.maxPhotosPerProperty ?? 0}</p>
+                </div>
+                <div className="rounded-xl bg-black/20 p-3 text-center">
+                  <p className="text-xs text-white/70">Videos/Property</p>
+                  <p className="text-lg font-semibold text-white">{limits.maxVideosPerProperty ?? 0}</p>
+                </div>
+                <div className="rounded-xl bg-black/20 p-3 text-center">
+                  <p className="text-xs text-white/70">Max Video Size</p>
+                  <p className="text-lg font-semibold text-white">{limits.maxVideoSizeMB ? `${limits.maxVideoSizeMB}MB` : '500MB'}</p>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 

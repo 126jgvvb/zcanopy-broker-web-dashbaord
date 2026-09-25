@@ -1,4 +1,5 @@
 import { mockData } from './mockData';
+import { decryptResponse } from './crypto';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
 
@@ -10,6 +11,17 @@ export interface PresignResponse {
 
 function buildApiUrl(path: string): string {
   return `${API_BASE}${path}`;
+}
+
+async function parseJsonResponse(res: Response): Promise<any> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.encrypted ? decryptResponse(parsed) : parsed;
+  } catch {
+    return text;
+  }
 }
 
 async function getUploadPresignedUrl(filename: string, contentType: string, folder = 'properties'): Promise<PresignResponse> {
@@ -24,25 +36,54 @@ async function getUploadPresignedUrl(filename: string, contentType: string, fold
     throw new Error(`Failed to get upload URL: ${res.status}`);
   }
 
-  return res.json();
+  return parseJsonResponse(res) as Promise<PresignResponse>;
 }
 
 export async function uploadToSpaces(file: File, folder = 'properties'): Promise<string> {
-  const { uploadUrl, publicUrl } = await getUploadPresignedUrl(file.name, file.type, folder);
+  try {
+    const { uploadUrl, publicUrl } = await getUploadPresignedUrl(file.name, file.type, folder);
 
-  const res = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': file.type,
-    },
+    if (!uploadUrl) {
+      throw new Error('Missing upload URL from presign response');
+    }
+
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.status}`);
+    }
+
+    return publicUrl;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      return uploadToSpacesViaProxy(file, folder);
+    }
+    throw error;
+  }
+}
+
+async function uploadToSpacesViaProxy(file: File, folder = 'properties'): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${buildApiUrl('/upload/proxy')}?folder=${encodeURIComponent(folder)}`, {
+    method: 'POST',
+    body: formData,
   });
 
   if (!res.ok) {
-    throw new Error(`Upload failed: ${res.status}`);
+    const text = await res.text();
+    throw new Error(`Proxy upload failed: ${res.status} - ${text}`);
   }
 
-  return publicUrl;
+  const data = await res.json();
+  return data.publicUrl;
 }
 
 export async function uploadMultipleToSpaces(files: File[], folder = 'properties'): Promise<string[]> {
@@ -66,6 +107,7 @@ export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   token?: string | null;
+  sessionId?: string | null;
   query?: Record<string, string | number | boolean | undefined>;
   fallback?: unknown;
 }
@@ -89,11 +131,15 @@ function shouldUseFallback(err: unknown): boolean {
 
 export async function apiFetch<T = unknown>(
   path: string,
-  { method = 'GET', body, token, query, fallback }: RequestOptions = {},
+  { method = 'GET', body, token, sessionId, query, fallback }: RequestOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (sessionId) {
+    headers['x-session-id'] = sessionId;
+  } else if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   try {
     const res = await fetch(buildUrl(path, query), {
@@ -107,7 +153,8 @@ export async function apiFetch<T = unknown>(
     const text = await res.text();
     if (text) {
       try {
-        data = JSON.parse(text) as Record<string, unknown>;
+        const parsed = JSON.parse(text) as Record<string, unknown>;
+        data = parsed.encrypted ? await decryptResponse(parsed) : parsed;
       } catch {
         data = text;
       }
@@ -135,8 +182,8 @@ export async function apiFetch<T = unknown>(
 }
 
 export const webApi = {
-  login: (email: string, password: string, type: 'broker' | 'customer' = 'broker') =>
-    apiFetch<{ id: string; username: string; email: string; role: string; token: string }>(
+  login: (email: string, password: string, type: 'admin' | 'broker' | 'customer' = 'broker') =>
+    apiFetch<{ id: string; username: string; email: string; role: string; token: string; brokerCode: string }>(
       '/web/auth/login',
       { method: 'POST', body: { email, password, type }, fallback: mockData.login() },
     ),
@@ -153,6 +200,12 @@ export const webApi = {
       { method: 'POST', body: { googleId, deviceId: 'web-dashboard' }, fallback: mockData.brokerLogin() },
     ),
 
+  brokerEmailLogin: (email: string, password: string) =>
+    apiFetch<{ id: string; username: string; email: string; role: string; brokerCode: string; token: string }>(
+      '/web/auth/broker/email-login',
+      { method: 'POST', body: { email, password, deviceId: 'web-dashboard' }, fallback: mockData.brokerLogin() },
+    ),
+
   brokerSetup: (body: unknown) =>
     apiFetch('/web/auth/broker/setup', { method: 'POST', body, fallback: { success: true, token: 'mock-token-broker' } }),
 
@@ -165,8 +218,8 @@ export const webApi = {
   propertyDetails: (id: string) =>
     apiFetch<{ property: any }>(`/web/public/properties/${id}`, { fallback: mockData.propertyDetails(id) }),
 
-  searchProperties: (q: string) =>
-    apiFetch<{ properties: any[]; total: number }>(`/web/public/search?q=${encodeURIComponent(q)}`, { fallback: mockData.search(q) }),
+  searchProperties: (q: string, options?: Record<string, string | number | boolean | undefined>) =>
+    apiFetch<{ properties: any[]; total: number }>('/web/public/search', { query: { q, ...options }, fallback: mockData.search(q) }),
 
   brokerProperties: (token: string, query?: Record<string, string | number | boolean | undefined>) =>
     apiFetch<{ properties: any[]; total: number }>('/web/broker/properties', { token, query, fallback: mockData.brokerProperties() }),
@@ -262,7 +315,7 @@ export const webApi = {
     apiFetch('/broker/otp/verify', { method: 'POST', body, fallback: { success: true, message: 'Verified', brokerCode: 'BRK-MOCK-1' } }),
 
   createCustomerSession: (body: unknown) =>
-    apiFetch('/customer/session', { method: 'POST', body, fallback: { sessionToken: 'mock-customer-session', customerId: 'mock-customer-1' } }),
+    apiFetch('/customer/session', { method: 'POST', body, fallback: { sessionToken: 'mock-customer-session', token: 'mock-customer-token', customerId: 'mock-customer-1' } }),
 
   uploadFile: (file: File, folder = 'properties') => uploadToSpaces(file, folder),
 

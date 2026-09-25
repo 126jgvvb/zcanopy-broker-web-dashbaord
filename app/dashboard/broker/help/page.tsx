@@ -8,6 +8,7 @@ export default function BrokerHelpPage() {
   const [activeTab, setActiveTab] = useState('faq');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [form, setForm] = useState({ name: '', email: '', category: 'General', subject: '', message: '' });
 
   const faqs = [
@@ -22,16 +23,23 @@ export default function BrokerHelpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
+    setErrorMsg('');
     try {
-      await webApi.brokerHelp(undefined as any, {
+      const token = localStorage.getItem('zcanopy_token');
+      const res: any = await webApi.brokerHelp(token, {
         email: form.email,
         phone: '',
-        message: `[${form.category}] ${form.subject}: ${form.message}`,
+        name: form.name,
+        content: `[${form.category}] ${form.subject}: ${form.message}`,
       });
-      setSent(true);
-      setForm({ name: '', email: '', category: 'General', subject: '', message: '' });
-    } catch {
-      // ignore
+      if (res?.success !== false) {
+        setSent(true);
+        setForm({ name: '', email: '', category: 'General', subject: '', message: '' });
+      } else {
+        setErrorMsg(res?.message || 'Failed to submit request. Please try again.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to submit request. Please try again.');
     } finally {
       setSending(false);
     }
@@ -72,7 +80,15 @@ export default function BrokerHelpPage() {
       {activeTab === 'contact' && (
         <Panel title="Contact Support">
           {sent ? (
-            <div className="rounded-xl bg-green-50 p-4 text-sm text-green-700">Your support request has been submitted. We will get back to you shortly.</div>
+            <div className="space-y-3">
+              <div className="rounded-xl bg-green-50 p-4 text-sm text-green-700">Your support request has been submitted. We will get back to you shortly.</div>
+              <button
+                onClick={() => setSent(false)}
+                className="text-sm text-[var(--zcanopy-primary)] hover:underline"
+              >
+                Submit another request
+              </button>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -135,6 +151,9 @@ export default function BrokerHelpPage() {
               >
                 {sending ? 'Sending...' : 'Submit Request'}
               </button>
+              {errorMsg && (
+                <p className="text-sm text-red-600">{errorMsg}</p>
+              )}
             </form>
           )}
         </Panel>

@@ -23,7 +23,7 @@ interface VerificationStatus {
 }
 
 export default function BrokerWalletPage() {
-  const [wallet, setWallet] = useState<{ balance: number; currency: string; walletId: string; minimumWithdrawal?: number } | null>(null);
+  const [wallet, setWallet] = useState<{ balance?: number; currency?: string; walletId?: string; name?: string } | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -91,7 +91,8 @@ export default function BrokerWalletPage() {
       const res: any = await webApi.submitVerificationDocuments(token, { idFrontUrl, idBackUrl });
       if (res.success) {
         setDocSuccess('Documents submitted successfully! Verification is in progress.');
-        setVerification({ isVerified: false, verificationStatus: 'pending', idFrontUrl, idBackUrl });
+        const refreshed = await webApi.getVerificationStatus(token);
+        setVerification(refreshed);
         setIdFront(null);
         setIdBack(null);
         setIdFrontPreview(null);
@@ -99,8 +100,9 @@ export default function BrokerWalletPage() {
       } else {
         setDocError(res.message || 'Failed to submit documents');
       }
-    } catch {
-      setDocError('Network error. Please try again.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Network error. Please try again.';
+      setDocError(message);
     } finally {
       setUploadingDocs(false);
     }
@@ -108,7 +110,14 @@ export default function BrokerWalletPage() {
 
   const getVerificationBadge = () => {
     if (!verification) return null;
-    const status = verification.verificationStatus;
+
+    const hasUploadedDocuments =
+      (verification.idFrontUrl && verification.idBackUrl) &&
+      verification.idFrontUrl.startsWith('https://zcanopy-properties-media.fra1.digitaloceanspaces.com') &&
+      verification.idBackUrl.startsWith('https://zcanopy-properties-media.fra1.digitaloceanspaces.com');
+
+    const status = verification.isVerified ? 'approved' : hasUploadedDocuments ? 'pending' : 'unsubmitted';
+
     const configs = {
       unsubmitted: { color: 'bg-gray-100 text-gray-600', icon: AlertTriangle, text: 'Not Submitted' },
       pending: { color: 'bg-yellow-100 text-yellow-700', icon: Clock, text: 'Under Review' },
@@ -145,8 +154,8 @@ export default function BrokerWalletPage() {
       setWithdrawError('Please enter a valid amount');
       return;
     }
-    if (wallet.minimumWithdrawal && withdrawAmount < wallet.minimumWithdrawal) {
-      setWithdrawError(`Minimum withdrawal is UGX ${wallet.minimumWithdrawal.toLocaleString()}`);
+    if (withdrawAmount < (wallet.minimumWithdrawal ?? 10000)) {
+      setWithdrawError(`Minimum withdrawal is UGX ${(wallet.minimumWithdrawal ?? 10000).toLocaleString()}`);
       return;
     }
     if (withdrawAmount > wallet.balance) {
@@ -191,7 +200,7 @@ export default function BrokerWalletPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Panel title="Available Balance">
           <p className="text-3xl font-bold text-[var(--zcanopy-primary)]">
-            {wallet ? `UGX ${wallet.balance.toLocaleString()}` : 'UGX 0'}
+            {wallet ? `UGX ${(wallet.balance ?? 0).toLocaleString()}` : 'UGX 0'}
           </p>
           <p className="text-sm text-gray-500">Wallet ID: {wallet?.walletId || '-'}</p>
         </Panel>
@@ -340,7 +349,7 @@ export default function BrokerWalletPage() {
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
                 placeholder="Enter amount"
                 required
-                min={wallet?.minimumWithdrawal || 10000}
+                min={(wallet.minimumWithdrawal ?? 10000)}
                 max={wallet?.balance || 0}
                 disabled={!canWithdraw}
               />
