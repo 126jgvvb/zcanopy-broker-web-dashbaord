@@ -23,7 +23,7 @@ interface VerificationStatus {
 }
 
 export default function BrokerWalletPage() {
-  const [wallet, setWallet] = useState<{ balance?: number; currency?: string; walletId?: string; name?: string } | null>(null);
+  const [wallet, setWallet] = useState<{ balance?: number; currency?: string; walletId?: string; name?: string; minimumWithdrawal?: number } | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -92,7 +92,7 @@ export default function BrokerWalletPage() {
       if (res.success) {
         setDocSuccess('Documents submitted successfully! Verification is in progress.');
         const refreshed = await webApi.getVerificationStatus(token);
-        setVerification(refreshed);
+        setVerification(refreshed as VerificationStatus);
         setIdFront(null);
         setIdBack(null);
         setIdFrontPreview(null);
@@ -158,7 +158,7 @@ export default function BrokerWalletPage() {
       setWithdrawError(`Minimum withdrawal is UGX ${(wallet.minimumWithdrawal ?? 10000).toLocaleString()}`);
       return;
     }
-    if (withdrawAmount > wallet.balance) {
+    if (withdrawAmount > (wallet.balance ?? 0)) {
       setWithdrawError('Insufficient balance');
       return;
     }
@@ -349,7 +349,7 @@ export default function BrokerWalletPage() {
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
                 placeholder="Enter amount"
                 required
-                min={(wallet.minimumWithdrawal ?? 10000)}
+                min={(wallet?.minimumWithdrawal ?? 10000)}
                 max={wallet?.balance || 0}
                 disabled={!canWithdraw}
               />
