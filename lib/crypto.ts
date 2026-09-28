@@ -1,5 +1,11 @@
 const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'sBXZBcqwKPmzNv+ifnUFdgVkh01jgTqDgGALrBgMIRLmQbcwJtc6Vb4W+axZRe+w';
 
+if (process.env.NEXT_PUBLIC_ENCRYPTION_KEY) {
+  console.log('[crypto] Using NEXT_PUBLIC_ENCRYPTION_KEY from environment');
+} else {
+  console.log('[crypto] NEXT_PUBLIC_ENCRYPTION_KEY not set, using fallback key');
+}
+
 function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(32);
   for (let i = 0; i < 32; i++) {
@@ -37,7 +43,7 @@ async function getCryptoKey(): Promise<CryptoKey | null> {
   }
   cryptoKey = await crypto.subtle.importKey(
     'raw',
-    keyBytes as BufferSource,
+    keyBytes as unknown as BufferSource,
     { name: 'AES-GCM' },
     false,
     ['decrypt'],
@@ -51,25 +57,31 @@ export async function decryptResponse(data: any): Promise<any> {
   }
 
   const key = await getCryptoKey();
-  if (!key) return data;
-
-  const buffer = base64ToBytes(data.payload);
-  const iv = buffer.slice(0, 12);
-  const authTag = buffer.slice(12, 28);
-  const ciphertext = buffer.slice(28);
-
-  const combined = new Uint8Array(ciphertext.length + authTag.length);
-  combined.set(ciphertext, 0);
-  combined.set(authTag, ciphertext.length);
+  if (!key) {
+    console.error('[decryptResponse] No crypto key available');
+    return data;
+  }
 
   try {
+    const buffer = base64ToBytes(data.payload);
+    const iv = buffer.slice(0, 12);
+    const authTag = buffer.slice(12, 28);
+    const ciphertext = buffer.slice(28);
+
+    const combined = new Uint8Array(ciphertext.length + authTag.length);
+    combined.set(ciphertext, 0);
+    combined.set(authTag, ciphertext.length);
+
     const decrypted = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv },
       key,
       combined,
     );
-    return JSON.parse(arrayBufferToString(decrypted));
-  } catch {
+    const text = arrayBufferToString(decrypted);
+    console.log('[decryptResponse] Decrypted payload', text);
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('[decryptResponse] Decryption failed', error);
     return data;
   }
 }

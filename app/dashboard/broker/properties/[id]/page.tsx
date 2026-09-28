@@ -50,6 +50,8 @@ export default function BrokerPropertyDetailPage() {
   const [mediaDialog, setMediaDialog] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
+  const [showMakeAvailableConfirm, setShowMakeAvailableConfirm] = useState(false);
+  const [makingAvailable, setMakingAvailable] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');
@@ -126,6 +128,22 @@ export default function BrokerPropertyDetailPage() {
       // ignore
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleMakeAvailable = async () => {
+    const token = localStorage.getItem('zcanopy_token');
+    if (!token || !property) return;
+    setMakingAvailable(true);
+    try {
+      await webApi.brokerUpdatePropertyAvailability(token, property.id, true);
+      setProperty((prev) => prev ? { ...prev, isAvailable: true } : prev);
+      setShowMakeAvailableConfirm(false);
+      setMediaDialog({ type: 'success', message: 'Property is now available for bookings.' });
+    } catch {
+      setMediaDialog({ type: 'error', message: 'Failed to make property available.' });
+    } finally {
+      setMakingAvailable(false);
     }
   };
 
@@ -241,6 +259,14 @@ export default function BrokerPropertyDetailPage() {
           >
             {editing ? 'Cancel Edit' : 'Edit Property'}
           </button>
+          {!property.isAvailable && (
+            <button
+              onClick={() => setShowMakeAvailableConfirm(true)}
+              className="rounded-xl border border-green-200 bg-green-50 px-5 py-2.5 text-sm font-semibold text-green-800 transition-all hover:bg-green-100"
+            >
+              Make Available
+            </button>
+          )}
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-rose-800 transition-all hover:bg-rose-100"
@@ -346,6 +372,35 @@ export default function BrokerPropertyDetailPage() {
                 className="flex-1 rounded-xl bg-red-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMakeAvailableConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">Make Property Available</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Are you sure you want to mark "{property.title}" as available? This will allow new bookings on this property.
+            </p>
+            <p className="mt-2 text-sm text-amber-700">
+              Warning: Please confirm that you have already settled all outstanding funds with the previous buyer before proceeding. This action cannot be undone.
+            </p>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setShowMakeAvailableConfirm(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMakeAvailable}
+                disabled={makingAvailable}
+                className="flex-1 rounded-xl bg-green-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              >
+                {makingAvailable ? 'Updating...' : 'Yes, Make Available'}
               </button>
             </div>
           </div>

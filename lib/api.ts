@@ -15,9 +15,11 @@ function buildApiUrl(path: string): string {
 
 async function parseJsonResponse(res: Response): Promise<any> {
   const text = await res.text();
+  console.log('[apiFetch] Raw response text', text);
   if (!text) return null;
   try {
     const parsed = JSON.parse(text);
+    console.log('[apiFetch] Parsed response', parsed);
     return parsed.encrypted ? decryptResponse(parsed) : parsed;
   } catch {
     return text;
@@ -232,6 +234,9 @@ export const webApi = {
 
   updateProperty: (token: string, id: string, body: unknown) =>
     apiFetch(`/web/broker/properties/${id}`, { method: 'PUT', token, body, fallback: { success: true } }),
+
+  brokerUpdatePropertyAvailability: (token: string, id: string, isAvailable: boolean) =>
+    apiFetch(`/web/broker/properties/${id}/availability`, { method: 'PUT', token, body: { isAvailable }, fallback: { success: true } }),
 
   deleteProperty: (token: string, id: string) =>
     apiFetch(`/web/broker/properties/${id}`, { method: 'DELETE', token, fallback: { success: true } }),
