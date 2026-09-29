@@ -208,6 +208,15 @@ export const webApi = {
       { method: 'POST', body: { email, password, deviceId: 'web-dashboard' }, fallback: mockData.brokerLogin() },
     ),
 
+  sendForgotPasswordOtp: (email: string) =>
+    apiFetch<{ success: boolean; message: string }>('/auth/forgot-password/otp/send', { method: 'POST', body: { email }, skipSessionHeader: true, fallback: { success: true, message: 'OTP sent (mock)' } }),
+
+  verifyForgotPasswordOtp: (email: string, otp: string) =>
+    apiFetch<{ success: boolean; message: string; valid: boolean }>('/auth/forgot-password/otp/verify', { method: 'POST', body: { email, otp }, skipSessionHeader: true, fallback: { success: true, message: 'OTP verified (mock)', valid: true } }),
+
+  resetPassword: (email: string, password: string) =>
+    apiFetch<{ success: boolean; message: string }>('/auth/forgot-password/reset', { method: 'POST', body: { email, password }, skipSessionHeader: true, fallback: { success: true, message: 'Password reset (mock)' } }),
+
   brokerSetup: (body: unknown) =>
     apiFetch('/web/auth/broker/setup', { method: 'POST', body, fallback: { success: true, token: 'mock-token-broker' } }),
 

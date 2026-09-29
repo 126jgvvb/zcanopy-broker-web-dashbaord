@@ -355,8 +355,8 @@ export default function BrokerPropertyDetailPage() {
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-2xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-white p-6 shadow-xl">
             <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">Delete Property</h3>
             <p className="mt-2 text-sm text-gray-600">Are you sure you want to delete "{property.title}"? This action cannot be undone.</p>
             <div className="mt-4 flex gap-3">
@@ -379,8 +379,8 @@ export default function BrokerPropertyDetailPage() {
       )}
 
       {showMakeAvailableConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-2xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-white p-6 shadow-xl">
             <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">Make Property Available</h3>
             <p className="mt-2 text-sm text-gray-600">
               Are you sure you want to mark "{property.title}" as available? This will allow new bookings on this property.
