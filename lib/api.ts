@@ -112,6 +112,7 @@ export interface RequestOptions {
   sessionId?: string | null;
   query?: Record<string, string | number | boolean | undefined>;
   fallback?: unknown;
+  skipSessionHeader?: boolean;
 }
 
 function buildUrl(path: string, query?: RequestOptions['query']): string {
@@ -133,11 +134,11 @@ function shouldUseFallback(err: unknown): boolean {
 
 export async function apiFetch<T = unknown>(
   path: string,
-  { method = 'GET', body, token, sessionId, query, fallback }: RequestOptions = {},
+  { method = 'GET', body, token, sessionId, query, fallback, skipSessionHeader }: RequestOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (sessionId) {
+  if (sessionId && !skipSessionHeader) {
     headers['x-session-id'] = sessionId;
   } else if (token) {
     headers['Authorization'] = `Bearer ${token}`;
