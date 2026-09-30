@@ -320,7 +320,7 @@ export const webApi = {
     apiFetch<{ properties: any[]; total: number }>(`/web/customer/broker/${brokerCode}/properties`, { query, fallback: mockData.brokerProperties() }),
 
   registerBroker: (body: unknown) =>
-    apiFetch('/broker/register', { method: 'POST', body, fallback: { brokerId: 'mock-broker-1', email: (body as any)?.email, phoneNumber: (body as any)?.phoneNumber, brokerCode: '' } }),
+    apiFetch<{ success: boolean; message: string; expiresInSeconds?: number }>('/broker/register', { method: 'POST', body, fallback: { success: false, message: 'Could not reach the registration service. Please try again.' } }),
 
   sendBrokerOtp: (body: unknown) =>
     apiFetch('/broker/otp/send', { method: 'POST', body, fallback: { success: true, message: 'OTP sent', expiresInSeconds: 600 } }),

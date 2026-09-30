@@ -21,9 +21,9 @@ function IdUpload({
 }) {
   return (
     <div>
-          <p className="text-sm font-medium text-[var(--zcanopy-card-brown)]">{label}</p>
+          <p className="text-xs font-medium text-[var(--zcanopy-card-brown)]">{label}</p>
       <label
-        className={`flex h-24 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed text-center transition-colors ${
+        className={`flex h-16 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed text-center transition-colors ${
           preview ? 'border-[var(--zcanopy-primary)]' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'
         }`}
       >
@@ -32,8 +32,8 @@ function IdUpload({
           <img src={preview} alt={label} className="h-full w-full object-contain" />
         ) : (
           <div className="text-gray-400">
-            <IdCard className="mx-auto h-6 w-6" />
-            <p className="mt-1 text-xs">Tap to upload</p>
+            <IdCard className="mx-auto h-5 w-5" />
+            <p className="mt-0.5 text-[11px]">Tap to upload</p>
           </div>
         )}
         <input
@@ -69,6 +69,8 @@ export default function SignUpPage() {
   const [otp, setOtp] = useState({ email: '', phone: '' });
   const [brokerCode, setBrokerCode] = useState('');
   const [error, setError] = useState('');
+  const [resendMessage, setResendMessage] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
@@ -151,13 +153,14 @@ export default function SignUpPage() {
         idFrontUrl,
         idBackUrl,
       });
-      if ((data as any).message && !(data as any).brokerId) {
-        setError((data as any).message || 'Registration failed');
+      if (!(data as any)?.success) {
+        setError((data as any)?.message || 'Registration failed');
         return;
       }
+      setResendMessage('Verification codes sent to your email and phone.');
       setStep('otp');
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -168,15 +171,6 @@ export default function SignUpPage() {
     setError('');
     setLoading(true);
     try {
-      const sendData = await webApi.sendBrokerOtp({
-        email: form.email,
-        phoneNumber: form.phoneNumber,
-      });
-      if ((sendData as any).message && !(sendData as any).success) {
-        setError((sendData as any).message || 'Failed to send OTP');
-        return;
-      }
-
       const verifyData = await webApi.verifyBrokerOtp({
         email: form.email,
         phoneNumber: form.phoneNumber,
@@ -190,10 +184,31 @@ export default function SignUpPage() {
 
       setBrokerCode((verifyData as any).brokerCode);
       setStep('welcome');
-    } catch {
-      setError('Network error. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    setResendLoading(true);
+    try {
+      const sendData: any = await webApi.sendBrokerOtp({
+        email: form.email,
+        phoneNumber: form.phoneNumber,
+      });
+      if (!sendData?.success) {
+        setResendMessage(sendData?.message || 'Could not resend codes.');
+        return;
+      }
+      setResendMessage('New codes sent. Check your email and phone.');
+      setOtp({ email: '', phone: '' });
+    } catch (err) {
+      setResendMessage(err instanceof Error ? err.message : 'Could not resend codes.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -237,18 +252,18 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-5">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(209,160,84,0.22),transparent_55%)]" />
-      <div className="relative w-full max-w-md rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
-        <div className="mb-5 text-center">
+      <div className="relative w-full max-w-sm rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
+        <div className="mb-4 text-center">
           <img
             src="/logo.svg"
             alt="ZCanopy"
-            className="mx-auto h-12 w-12 object-contain"
+            className="mx-auto h-10 w-10 object-contain"
             style={{ mixBlendMode: 'multiply' }}
           />
           <p className="zc-kicker mt-3">Get started</p>
-          <h1 className="mt-1 text-2xl text-[var(--zcanopy-card-brown)]">Broker Registration</h1>
+          <h1 className="mt-0.5 text-2xl text-[var(--zcanopy-card-brown)]">Broker Registration</h1>
           <p className="mt-1 text-xs text-[var(--zcanopy-muted)]">Create your broker account</p>
         </div>
 
@@ -272,7 +287,7 @@ export default function SignUpPage() {
               <input type="tel" value={form.phoneNumber} onChange={update('phoneNumber')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <IdUpload
                 label="ID Front"
                 file={idFront}
@@ -298,6 +313,7 @@ export default function SignUpPage() {
         {step === 'otp' && (
           <form onSubmit={handleOtpSubmit} className="space-y-3">
             <p className="text-xs text-gray-500">Enter OTPs sent to your email and phone.</p>
+            {resendMessage && <p className="text-xs text-gray-500">{resendMessage}</p>}
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Email OTP</label>
               <input type="text" value={otp.email} onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
@@ -310,13 +326,22 @@ export default function SignUpPage() {
             <button type="submit" disabled={loading} className="w-full rounded-lg bg-[var(--zcanopy-primary)] py-2.5 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
               {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={resendLoading}
+              className="w-full text-xs font-medium text-[var(--zcanopy-primary)] underline-offset-4 hover:underline disabled:opacity-50"
+            >
+              {resendLoading ? 'Resending...' : "Didn't get the codes? Resend"}
+            </button>
+            {resendMessage && <p className="text-xs text-gray-500">{resendMessage}</p>}
           </form>
         )}
 
         {step === 'welcome' && (
           <div className="space-y-3">
             <p className="text-sm font-semibold text-[var(--zcanopy-card-brown)]">Your broker code is</p>
-            <p className="text-2xl font-bold text-[var(--zcanopy-primary)]">{brokerCode}</p>
+            <p className="text-xl font-bold text-[var(--zcanopy-primary)]">{brokerCode}</p>
             <p className="text-xs text-gray-500">Create your password and brand name.</p>
             
             <div>
@@ -357,14 +382,13 @@ export default function SignUpPage() {
             </div>
 
             {error && <p className="text-xs text-red-600">{error}</p>}
-
             <button onClick={handleWelcomeComplete} disabled={loading} className="w-full rounded-lg bg-[var(--zcanopy-primary)] py-2.5 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
               {loading ? 'Setting up & logging in...' : 'Complete Setup & Login'}
             </button>
           </div>
         )}
 
-        <p className="mt-4 text-center text-xs text-gray-500">
+        <p className="mt-3 text-center text-xs text-gray-500">
           Already have an account?{' '}
           <button onClick={() => router.push('/')} className="font-semibold text-[var(--zcanopy-primary)] underline-offset-4 hover:underline">
             Sign in
