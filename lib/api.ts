@@ -245,8 +245,10 @@ export const webApi = {
   updateProperty: (token: string, id: string, body: unknown) =>
     apiFetch(`/web/broker/properties/${id}`, { method: 'PUT', token, body, fallback: { success: true } }),
 
+  // No fallback: a swallowed 5xx previously reported success while the
+  // property stayed unavailable.
   brokerUpdatePropertyAvailability: (token: string, id: string, isAvailable: boolean) =>
-    apiFetch(`/web/broker/properties/${id}/availability`, { method: 'PUT', token, body: { isAvailable }, fallback: { success: true } }),
+    apiFetch(`/web/broker/properties/${id}/availability`, { method: 'PUT', token, body: { isAvailable } }),
 
   deleteProperty: (token: string, id: string) =>
     apiFetch(`/web/broker/properties/${id}`, { method: 'DELETE', token, fallback: { success: true } }),

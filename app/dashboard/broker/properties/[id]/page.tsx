@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import { webApi, uploadToSpaces } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
@@ -354,58 +355,83 @@ export default function BrokerPropertyDetailPage() {
         </Panel>
       )}
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">Delete Property</h3>
-            <p className="mt-2 text-sm text-gray-600">Are you sure you want to delete "{property.title}"? This action cannot be undone.</p>
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 rounded-xl bg-red-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
+      {showDeleteConfirm &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--zcanopy-card-brown)]/45 p-4 backdrop-blur-[2px]">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-property-title"
+              className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]"
+            >
+              <h3 id="delete-property-title" className="text-lg font-bold text-[var(--zcanopy-card-brown)]">
+                Delete Property
+              </h3>
+              <p className="mt-2 text-sm text-[var(--zcanopy-muted)]">
+                Are you sure you want to delete "{property.title}"? This action cannot be undone.
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] py-2 text-sm font-semibold text-[var(--zcanopy-card-brown)] transition-colors hover:bg-[var(--zcanopy-accent-gold)]/15"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 rounded-xl bg-red-700 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-800 disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
 
-      {showMakeAvailableConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">Make Property Available</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Are you sure you want to mark "{property.title}" as available? This will allow new bookings on this property.
-            </p>
-            <p className="mt-2 text-sm text-amber-700">
-              Warning: Please confirm that you have already settled all outstanding funds with the previous buyer before proceeding. This action cannot be undone.
-            </p>
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={() => setShowMakeAvailableConfirm(false)}
-                className="flex-1 rounded-xl border border-gray-200 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleMakeAvailable}
-                disabled={makingAvailable}
-                className="flex-1 rounded-xl bg-green-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-              >
-                {makingAvailable ? 'Updating...' : 'Yes, Make Available'}
-              </button>
+      {showMakeAvailableConfirm &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--zcanopy-card-brown)]/45 p-4 backdrop-blur-[2px]">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="make-available-title"
+              className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]"
+            >
+              <h3 id="make-available-title" className="text-lg font-bold text-[var(--zcanopy-card-brown)]">
+                Make Property Available
+              </h3>
+              <p className="mt-2 text-sm text-[var(--zcanopy-muted)]">
+                Are you sure you want to mark "{property.title}" as available? This will allow new bookings on this property.
+              </p>
+              <div className="mt-3 rounded-xl border border-[var(--zcanopy-accent-gold)]/35 bg-[var(--zcanopy-accent-gold)]/10 p-3">
+                <p className="text-sm text-[var(--zcanopy-card-brown)]">
+                  Warning: Please confirm that you have already settled all outstanding funds with the previous buyer before
+                  proceeding. This action cannot be undone.
+                </p>
+              </div>
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setShowMakeAvailableConfirm(false)}
+                  className="flex-1 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] py-2 text-sm font-semibold text-[var(--zcanopy-card-brown)] transition-colors hover:bg-[var(--zcanopy-accent-gold)]/15"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleMakeAvailable}
+                  disabled={makingAvailable}
+                  className="flex-1 rounded-xl bg-[var(--zcanopy-primary)] py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
+                >
+                  {makingAvailable ? 'Updating...' : 'Yes, Make Available'}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-6">
@@ -516,48 +542,56 @@ export default function BrokerPropertyDetailPage() {
           </button>
         </div>
 
-        {mediaDialog && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
-              <div className="mb-4 flex items-center gap-3">
-                {mediaDialog.type === 'success' ? (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-600">
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
-                    <X className="h-6 w-6" />
-                  </div>
-                )}
-                <h3 className="text-lg font-bold text-gray-900">
-                  {mediaDialog.type === 'success' ? 'Success' : 'Error'}
-                </h3>
-              </div>
-              <p className="text-sm text-gray-600 mb-6">{mediaDialog.message}</p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setMediaDialog(null)}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  OK
-                </button>
-                {mediaDialog.type === 'success' && (
+        {mediaDialog &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[var(--zcanopy-card-brown)]/45 p-4 backdrop-blur-[2px]">
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="media-dialog-title"
+                className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]"
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  {mediaDialog.type === 'success' ? (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--zcanopy-accent-gold)]/20 text-[var(--zcanopy-primary)]">
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-700">
+                      <X className="h-6 w-6" />
+                    </div>
+                  )}
+                  <h3 id="media-dialog-title" className="text-lg font-bold text-[var(--zcanopy-card-brown)]">
+                    {mediaDialog.type === 'success' ? 'Success' : 'Error'}
+                  </h3>
+                </div>
+                <p className="mb-6 text-sm text-[var(--zcanopy-muted)]">{mediaDialog.message}</p>
+                <div className="flex justify-end gap-3">
                   <button
-                    onClick={() => {
-                      setMediaDialog(null);
-                      router.push('/dashboard/broker/properties');
-                    }}
-                    className="rounded-xl bg-[var(--zcanopy-primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--zcanopy-primary-alt)]"
+                    onClick={() => setMediaDialog(null)}
+                    className="rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2 text-sm font-semibold text-[var(--zcanopy-card-brown)] transition-colors hover:bg-[var(--zcanopy-accent-gold)]/15"
                   >
-                    View All Properties
+                    OK
                   </button>
-                )}
+                  {mediaDialog.type === 'success' && (
+                    <button
+                      onClick={() => {
+                        setMediaDialog(null);
+                        router.push('/dashboard/broker/properties');
+                      }}
+                      className="rounded-xl bg-[var(--zcanopy-primary)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--zcanopy-primary-alt)]"
+                    >
+                      View All Properties
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </div>,
+            document.body,
+          )}
 
         <div className="space-y-6">
           <Panel title="Property Details">
