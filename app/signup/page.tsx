@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { webApi, uploadToSpaces } from '@/lib/api';
-import { IdCard } from 'lucide-react';
+import { IdCard, Eye, EyeOff } from 'lucide-react';
+import { authErrorMessage } from '@/lib/api';
 import { COLORS } from '@/lib/theme';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
@@ -61,6 +62,7 @@ export default function SignUpPage() {
   });
   const [setupPassword, setSetupPassword] = useState('');
   const [setupConfirmPassword, setSetupConfirmPassword] = useState('');
+  const [showSetupPassword, setShowSetupPassword] = useState(false);
   const [setupBrandName, setSetupBrandName] = useState('');
   const [idFront, setIdFront] = useState<File | null>(null);
   const [idBack, setIdBack] = useState<File | null>(null);
@@ -160,7 +162,7 @@ export default function SignUpPage() {
       setResendMessage('Verification codes sent to your email and phone.');
       setStep('otp');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error. Please try again.');
+      setError(authErrorMessage(err, 'registration details'));
     } finally {
       setLoading(false);
     }
@@ -185,7 +187,7 @@ export default function SignUpPage() {
       setBrokerCode((verifyData as any).brokerCode);
       setStep('welcome');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error. Please try again.');
+      setError(authErrorMessage(err, 'verification code'));
     } finally {
       setLoading(false);
     }
@@ -206,7 +208,7 @@ export default function SignUpPage() {
       setResendMessage('New codes sent. Check your email and phone.');
       setOtp({ email: '', phone: '' });
     } catch (err) {
-      setResendMessage(err instanceof Error ? err.message : 'Could not resend codes.');
+      setResendMessage(authErrorMessage(err, 'verification code'));
     } finally {
       setResendLoading(false);
     }
@@ -346,28 +348,50 @@ export default function SignUpPage() {
             
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Password</label>
-              <input 
-                type="password" 
-                value={setupPassword} 
-                onChange={(e) => setSetupPassword(e.target.value)} 
-                className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" 
-                required 
-                minLength={6} 
-                placeholder="Min 6 characters"
-              />
+              <div className="relative">
+                <input
+                  type={showSetupPassword ? 'text' : 'password'}
+                  value={setupPassword}
+                  onChange={(e) => setSetupPassword(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 pr-10 text-sm shadow-sm"
+                  required
+                  minLength={6}
+                  placeholder="Min 6 characters"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSetupPassword((prev) => !prev)}
+                  aria-label={showSetupPassword ? 'Hide passwords' : 'Show passwords'}
+                  title={showSetupPassword ? 'Hide passwords' : 'Show passwords'}
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 rounded-md p-2 text-[var(--zcanopy-muted)] transition hover:bg-[color-mix(in_srgb,var(--zcanopy-primary)_12%,transparent)] hover:text-[var(--zcanopy-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--zcanopy-primary)]/40"
+                >
+                  {showSetupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Confirm Password</label>
-              <input 
-                type="password" 
-                value={setupConfirmPassword} 
-                onChange={(e) => setSetupConfirmPassword(e.target.value)} 
-                className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" 
-                required 
-                minLength={6} 
-                placeholder="Re-enter password"
-              />
+              <div className="relative">
+                <input
+                  type={showSetupPassword ? 'text' : 'password'}
+                  value={setupConfirmPassword}
+                  onChange={(e) => setSetupConfirmPassword(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 pr-10 text-sm shadow-sm"
+                  required
+                  minLength={6}
+                  placeholder="Re-enter password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSetupPassword((prev) => !prev)}
+                  aria-label={showSetupPassword ? 'Hide passwords' : 'Show passwords'}
+                  title={showSetupPassword ? 'Hide passwords' : 'Show passwords'}
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 rounded-md p-2 text-[var(--zcanopy-muted)] transition hover:bg-[color-mix(in_srgb,var(--zcanopy-primary)_12%,transparent)] hover:text-[var(--zcanopy-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--zcanopy-primary)]/40"
+                >
+                  {showSetupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div>
