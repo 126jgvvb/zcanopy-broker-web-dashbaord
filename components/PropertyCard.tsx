@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef, useState, useCallback } from "react";
 
 interface PropertyCardProps {
   id: string;
@@ -20,6 +21,26 @@ export default function PropertyCard({ id, title, description, propertyType, loc
   const images = imageUrl?.filter(Boolean) || [];
   const videos = videoUrl?.filter(Boolean) || [];
   const mainImage = images[0] || "https://via.placeholder.com/600x400?text=No+Image";
+
+  const imagesScrollRef = useRef<HTMLDivElement>(null);
+  const videosScrollRef = useRef<HTMLDivElement>(null);
+  const [showImagesArrows, setShowImagesArrows] = useState(false);
+  const [showVideosArrows, setShowVideosArrows] = useState(false);
+
+  const scrollLeft = useCallback((ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollBy({ left: -220, behavior: 'smooth' });
+  }, []);
+
+  const scrollRight = useCallback((ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollBy({ left: 220, behavior: 'smooth' });
+  }, []);
+
+  const checkScroll = useCallback((ref: React.RefObject<HTMLDivElement>, setShow: (show: boolean) => void) => {
+    const el = ref.current;
+    if (el) {
+      setShow(el.scrollWidth > el.clientWidth);
+    }
+  }, []);
 
   const cardContent = (
     <div className="group block overflow-hidden rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] shadow-[var(--zcanopy-shadow)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--zcanopy-shadow-hover)]">
@@ -48,35 +69,79 @@ export default function PropertyCard({ id, title, description, propertyType, loc
           <span className="text-sm text-[var(--zcanopy-muted)]">{location}</span>
         </div>
         {images.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-hidden rounded-xl">
-            {images.slice(1, 5).map((img, idx) => (
-              <div key={idx} className="h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                <img src={img} alt={`${title} ${idx + 2}`} className="h-full w-full object-cover" />
-              </div>
-            ))}
-            {images.length > 5 && (
-              <div className="flex h-20 w-24 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-500">
-                +{images.length - 5}
-              </div>
+          <div className="relative mt-3">
+            <div
+              ref={imagesScrollRef}
+              onMouseEnter={() => checkScroll(imagesScrollRef, setShowImagesArrows)}
+              className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory"
+              style={{ scrollSnapType: 'x mandatory' }}
+            >
+              {images.slice(1).map((img, idx) => (
+                <div key={idx} className="h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 snap-center">
+                  <img src={img} alt={`${title} ${idx + 2}`} className="h-full w-full object-cover" />
+                </div>
+              ))}
+            </div>
+            {showImagesArrows && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => scrollLeft(imagesScrollRef)}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-lg text-[var(--zcanopy-card-brown)] transition-opacity hover:bg-white"
+                  aria-label="Scroll images left"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollRight(imagesScrollRef)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-lg text-[var(--zcanopy-card-brown)] transition-opacity hover:bg-white"
+                  aria-label="Scroll images right"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
             )}
           </div>
         )}
         {videos.length > 0 && (
-          <div className="mt-3 flex gap-2 overflow-hidden rounded-xl">
-            {videos.slice(0, 3).map((vid, idx) => (
-              <div key={idx} className="relative h-24 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                <video src={vid} className="h-full w-full object-cover" muted />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white">
-                    <Play className="h-4 w-4 fill-current" />
+          <div className="relative mt-3">
+            <div
+              ref={videosScrollRef}
+              onMouseEnter={() => checkScroll(videosScrollRef, setShowVideosArrows)}
+              className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory"
+              style={{ scrollSnapType: 'x mandatory' }}
+            >
+              {videos.map((vid, idx) => (
+                <div key={idx} className="relative h-24 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 snap-center">
+                  <video src={vid} className="h-full w-full object-cover" muted />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white">
+                      <Play className="h-4 w-4 fill-current" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {videos.length > 3 && (
-              <div className="flex h-24 w-40 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-xs font-semibold text-gray-500">
-                +{videos.length - 3}
-              </div>
+              ))}
+            </div>
+            {showVideosArrows && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => scrollLeft(videosScrollRef)}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-lg text-[var(--zcanopy-card-brown)] transition-opacity hover:bg-white"
+                  aria-label="Scroll videos left"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollRight(videosScrollRef)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-lg text-[var(--zcanopy-card-brown)] transition-opacity hover:bg-white"
+                  aria-label="Scroll videos right"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
             )}
           </div>
         )}

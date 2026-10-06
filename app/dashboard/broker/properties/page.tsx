@@ -29,6 +29,62 @@ interface TierLimits {
   maxVideoSizeMB: number;
 }
 
+const PROPERTY_TYPES = [
+  {
+    label: 'Single-Family Home / Villa (Bungalow, Townhouse)',
+    value: 'single_family_villa',
+    subtypes: ['Bungalow', 'Townhouse'],
+  },
+  {
+    label: 'Apartment / Flat (Condominium, Studio)',
+    value: 'apartment_flat',
+    subtypes: ['Condominium', 'Studio'],
+  },
+  {
+    label: 'Rentals / Muzigo (Single/Double room, Self-contained)',
+    value: 'rentals_muzigo',
+    subtypes: ['Single Room', 'Double Room', 'Self-contained'],
+  },
+  {
+    label: 'Commercial Arcade / Retail (Shop unit, Stall, Mall)',
+    value: 'commercial_arcade_retail',
+    subtypes: ['Shop Unit', 'Stall', 'Mall'],
+  },
+  {
+    label: 'Office Space (Plaza, Corporate tower)',
+    value: 'office_space',
+    subtypes: ['Plaza', 'Corporate Tower'],
+  },
+  {
+    label: 'Warehouse / Go-down (Storage, Depot)',
+    value: 'warehouse_godown',
+    subtypes: ['Storage', 'Depot'],
+  },
+  {
+    label: 'Residential Plot (Plot of land, land)',
+    value: 'residential_plot',
+    subtypes: ['Plot of Land'],
+  },
+  {
+    label: 'Agricultural Land (Farmland, Acreage, Mailo land)',
+    value: 'agricultural_land',
+    subtypes: ['Farmland', 'Acreage', 'Mailo Land'],
+  },
+  {
+    label: 'Hotel / Guest House / Safari Lodge / Lodge',
+    value: 'hotel_guesthouse_lodge',
+    subtypes: ['Hotel', 'Guest House', 'Safari Lodge', 'Lodge'],
+  },
+  {
+    label: 'Mixed-Use Building (Shops below, Flats above)',
+    value: 'mixed_use_building',
+    subtypes: ['Shops Below, Flats Above'],
+  },
+] as const;
+
+type PropertyType = typeof PROPERTY_TYPES[number];
+type PropertySubtype = PropertyType['subtypes'][number];
+
 export default function BrokerPropertiesPage() {
   const [mapsReady, setMapsReady] = useState(false);
 
@@ -62,7 +118,8 @@ export default function BrokerPropertiesPage() {
   const [propertyType, setPropertyType] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({ title: '', description: '', propertyType: 'apartment', location: '', price: '', brokerBookingFee: '' });
+  // propertyCategory is for UI grouping only; propertyType stores the selected subtype
+  const [createForm, setCreateForm] = useState({ title: '', description: '', propertyCategory: '', propertyType: '', location: '', price: '', brokerBookingFee: '' });
   const [locationEditable, setLocationEditable] = useState(false);
   const [lat, setLat] = useState(0);
   const [lng, setLng] = useState(0);
@@ -76,6 +133,27 @@ export default function BrokerPropertiesPage() {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const [uploadDialog, setUploadDialog] = useState<{ type: 'error'; message: string } | null>(null);
+  const [priceError, setPriceError] = useState('');
+  const [feeError, setFeeError] = useState('');
+
+  const validatePriceAndFee = (price: string, fee: string) => {
+    const priceNum = Number(price);
+    const feeNum = Number(fee);
+    let hasError = false;
+    if (feeNum && feeNum < 5000) {
+      setFeeError('Broker booking fee must be at least 5,000 UGX');
+      hasError = true;
+    } else {
+      setFeeError('');
+    }
+    if (priceNum && feeNum && priceNum <= feeNum) {
+      setPriceError('Price must be greater than the broker booking fee');
+      hasError = true;
+    } else {
+      setPriceError('');
+    }
+    return !hasError;
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');
@@ -327,6 +405,12 @@ export default function BrokerPropertiesPage() {
     e.preventDefault();
     const token = localStorage.getItem('zcanopy_token');
     if (!token) return;
+
+    // Validate price and fee before submitting
+    if (!validatePriceAndFee(createForm.price, createForm.brokerBookingFee)) {
+      return;
+    }
+
     setCreating(true);
     try {
       await webApi.createProperty(token, {
@@ -343,7 +427,9 @@ export default function BrokerPropertiesPage() {
         lng,
       });
       setShowCreate(false);
-      setCreateForm({ title: '', description: '', propertyType: 'apartment', location: '', price: '', brokerBookingFee: '' });
+      setCreateForm({ title: '', description: '', propertyCategory: '', propertyType: '', location: '', price: '', brokerBookingFee: '' });
+      setPriceError('');
+      setFeeError('');
       setLocationEditable(false);
       setPhotos([]);
       setVideo(null);
@@ -396,16 +482,40 @@ export default function BrokerPropertiesPage() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Property Type</label>
-                <input
-                  type="text"
-                  value={createForm.propertyType}
-                  onChange={(e) => setCreateForm({ ...createForm, propertyType: e.target.value })}
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Property Category</label>
+                <select
+                  value={createForm.propertyCategory}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, propertyCategory: e.target.value, propertyType: '' }))}
                   className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
-                  placeholder="e.g. Apartment, Villa, Land, Commercial"
                   required
-                />
+                >
+                  <option value="">Select a category</option>
+                  {PROPERTY_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
               </div>
+              {createForm.propertyCategory && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Property Type <span className="text-red-500">*</span></label>
+                  <select
+                    value={createForm.propertyType}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, propertyType: e.target.value }))}
+                    className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
+                    required
+                  >
+                    <option value="">Select a type</option>
+                    {PROPERTY_TYPES.find((t) => t.value === createForm.propertyCategory)?.subtypes.map((subtype) => (
+                      <option key={subtype} value={subtype}>
+                        {subtype}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">Please explicitly choose the specific property type.</p>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-gray-700">Enter location manually?</label>
@@ -500,20 +610,28 @@ export default function BrokerPropertiesPage() {
               <input
                 type="number"
                 value={createForm.price}
-                onChange={(e) => setCreateForm({ ...createForm, price: e.target.value })}
-                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
+                onChange={(e) => {
+                  setCreateForm((prev) => ({ ...prev, price: e.target.value }));
+                  validatePriceAndFee(e.target.value, createForm.brokerBookingFee);
+                }}
+                className={`w-full rounded-xl border ${priceError ? 'border-red-500' : 'border-[var(--zcanopy-border)]'} bg-white/70 px-4 py-2.5 shadow-sm`}
                 required
               />
+              {priceError && <p className="mt-1 text-xs text-red-500">{priceError}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Booking Fee (UGX)</label>
               <input
                 type="number"
                 value={createForm.brokerBookingFee}
-                onChange={(e) => setCreateForm({ ...createForm, brokerBookingFee: e.target.value })}
-                className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 shadow-sm"
-                placeholder="e.g. 50000"
+                onChange={(e) => {
+                  setCreateForm((prev) => ({ ...prev, brokerBookingFee: e.target.value }));
+                  validatePriceAndFee(createForm.price, e.target.value);
+                }}
+                className={`w-full rounded-xl border ${feeError ? 'border-red-500' : 'border-[var(--zcanopy-border)]'} bg-white/70 px-4 py-2.5 shadow-sm`}
+                placeholder="e.g. 50000 (min 5,000)"
               />
+              {feeError && <p className="mt-1 text-xs text-red-500">{feeError}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
@@ -614,10 +732,11 @@ export default function BrokerPropertiesPage() {
             className="rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm"
           >
             <option value="">All Types</option>
-            <option value="apartment">Apartment</option>
-            <option value="villa">Villa</option>
-            <option value="commercial">Commercial</option>
-            <option value="land">Land</option>
+            {PROPERTY_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

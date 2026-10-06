@@ -357,3 +357,12 @@ html.dark .zc-link-bad:hover {
 html.dark .zc-plan-hero {
   background: linear-gradient(115deg, #2a1814 0%, #4a322c 48%, #8f5d0c 100%);
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
