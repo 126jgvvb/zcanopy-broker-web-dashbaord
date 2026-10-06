@@ -27,15 +27,15 @@ export default function PropertyCard({ id, title, description, propertyType, loc
   const [showImagesArrows, setShowImagesArrows] = useState(false);
   const [showVideosArrows, setShowVideosArrows] = useState(false);
 
-  const scrollLeft = useCallback((ref: React.RefObject<HTMLDivElement>) => {
+  const scrollLeft = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollBy({ left: -220, behavior: 'smooth' });
   }, []);
 
-  const scrollRight = useCallback((ref: React.RefObject<HTMLDivElement>) => {
+  const scrollRight = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     ref.current?.scrollBy({ left: 220, behavior: 'smooth' });
   }, []);
 
-  const checkScroll = useCallback((ref: React.RefObject<HTMLDivElement>, setShow: (show: boolean) => void) => {
+  const checkScroll = useCallback((ref: React.RefObject<HTMLDivElement | null>, setShow: (show: boolean) => void) => {
     const el = ref.current;
     if (el) {
       setShow(el.scrollWidth > el.clientWidth);
