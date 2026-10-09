@@ -6,6 +6,7 @@ import { webApi, uploadToSpaces } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
+import { useBrokerProperties, useBrokerSubscriptionDetails, revalidateProperties } from '@/lib/swr';
 
 const SCRIPT_ID = 'google-maps-script';
 
@@ -111,9 +112,24 @@ export default function BrokerPropertiesPage() {
     document.head.appendChild(script);
   }, []);
 
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const propertiesQuery = useBrokerProperties();
+  const subscriptionQuery = useBrokerSubscriptionDetails();
+
+  const properties: Property[] = (propertiesQuery.data as any)?.properties || [];
+  const loading = propertiesQuery.isLoading && subscriptionQuery.isLoading;
+  const error = (propertiesQuery.error || subscriptionQuery.error) ? 'Failed to load properties' : '';
+
+  const limits = (subscriptionQuery.data as any)?.limits || {};
+  const tier = {
+    name: (subscriptionQuery.data as any)?.subscriptionTier || 'prop',
+    limits: {
+      maxProperties: limits.maxProperties || 5,
+      maxPhotosPerProperty: limits.maxPhotosPerProperty || 15,
+      maxVideosPerProperty: limits.maxVideosPerProperty || 1,
+      maxVideoSizeMB: limits.maxVideoSizeMB || 500,
+    } as TierLimits,
+  };
+
   const [search, setSearch] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -129,7 +145,6 @@ export default function BrokerPropertiesPage() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [video, setVideo] = useState<string | null>(null);
-  const [tier, setTier] = useState({ name: 'Prop', limits: {} as TierLimits });
   const [photoUploading, setPhotoUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const [uploadDialog, setUploadDialog] = useState<{ type: 'error'; message: string } | null>(null);
@@ -154,31 +169,6 @@ export default function BrokerPropertiesPage() {
     }
     return !hasError;
   };
-
-  useEffect(() => {
-    const token = localStorage.getItem('zcanopy_token');
-    if (!token) return;
-
-    Promise.all([
-      webApi.brokerProperties(token),
-      webApi.brokerSubscriptionDetails(token),
-    ])
-      .then(([propsData, subData]: any) => {
-        setProperties((propsData as any).properties || []);
-        const limits = (subData as any).limits || {};
-        setTier({
-          name: (subData as any).subscriptionTier || 'prop',
-          limits: {
-            maxProperties: limits.maxProperties || 5,
-            maxPhotosPerProperty: limits.maxPhotosPerProperty || 15,
-            maxVideosPerProperty: limits.maxVideosPerProperty || 1,
-            maxVideoSizeMB: limits.maxVideoSizeMB || 500,
-          },
-        });
-      })
-      .catch(() => setError('Failed to load properties'))
-      .finally(() => setLoading(false));
-  }, []);
 
   useEffect(() => {
     if (locationEditable) {
@@ -433,8 +423,7 @@ export default function BrokerPropertiesPage() {
       setLocationEditable(false);
       setPhotos([]);
       setVideo(null);
-      const data = await webApi.brokerProperties(token);
-      setProperties((data as any).properties || []);
+      await revalidateProperties();
     } catch {
       // ignore
     } finally {

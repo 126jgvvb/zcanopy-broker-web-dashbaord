@@ -8,6 +8,7 @@ import ZLoadingIndicator from '@/components/ZLoadingIndicator';
 import { Menu } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 import { webApi } from '@/lib/api';
+import { SwrProvider } from '@/lib/swr';
 
 export default function DashboardLayout({
   children,
@@ -76,6 +77,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-[var(--background)]">
+      <SwrProvider>
       <Sidebar role={role} user={user} onLogout={logout} isOpen={sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
       <div className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)]/75 px-4 py-3.5 backdrop-blur-md sm:px-6 lg:px-8">
@@ -104,6 +106,7 @@ export default function DashboardLayout({
         </header>
         <main className="zc-page flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">{children}</main>
       </div>
+      </SwrProvider>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import GoogleMap from '@/components/GoogleMap';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
+import { useBrokerPropertyDetails, useBrokerSubscriptionDetails, revalidateProperties } from '@/lib/swr';
 
 interface Property {
   id: string;
@@ -35,9 +36,29 @@ export default function BrokerPropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const [property, setProperty] = useState<Property | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const detailsQuery = useBrokerPropertyDetails(id);
+  const subscriptionQuery = useBrokerSubscriptionDetails();
+
+  const loading = detailsQuery.isLoading && subscriptionQuery.isLoading;
+  const error = detailsQuery.error ? 'Failed to load property details' : '';
+
+  const property: Property | null =
+    (detailsQuery.data as any)?.property ||
+    (detailsQuery.data as any)?.properties?.[0] ||
+    (detailsQuery.data as any) ||
+    null;
+
+  const limits = (subscriptionQuery.data as any)?.limits || {};
+  const tier = {
+    name: (subscriptionQuery.data as any)?.subscriptionTier || 'prop',
+    limits: {
+      maxProperties: limits.maxProperties || 5,
+      maxPhotosPerProperty: limits.maxPhotosPerProperty || 15,
+      maxVideosPerProperty: limits.maxVideosPerProperty || 1,
+      maxVideoSizeMB: limits.maxVideoSizeMB || 500,
+    } as TierLimits,
+  };
+
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ title: '', description: '', location: '', price: '', brokerBookingFee: '', propertyType: 'apartment' });
@@ -46,49 +67,39 @@ export default function BrokerPropertyDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
-  const [tier, setTier] = useState({ name: 'Prop', limits: {} as TierLimits });
   const [mediaSaving, setMediaSaving] = useState(false);
   const [mediaDialog, setMediaDialog] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const [showMakeAvailableConfirm, setShowMakeAvailableConfirm] = useState(false);
   const [makingAvailable, setMakingAvailable] = useState(false);
+  const [initializedId, setInitializedId] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('zcanopy_token');
-    if (!token || !id) return;
+    if (!property || initializedId === id) return;
+    setInitializedId(id);
+    setPhotos(property.imageUrl?.filter(Boolean) || []);
+    setVideos(property.videoUrl?.filter(Boolean) || []);
+    setEditForm({
+      title: property.title || '',
+      description: property.description || '',
+      location: property.location || '',
+      price: property.price?.toString() || '',
+      brokerBookingFee: property.brokerBookingFee?.toString() || '',
+      propertyType: property.propertyType || 'apartment',
+    });
+  }, [property, id, initializedId]);
 
-    Promise.all([
-      webApi.brokerPropertyDetails(token, id),
-      webApi.brokerSubscriptionDetails(token),
-    ])
-      .then(([data, subData]: any) => {
-        const prop = data?.property || data?.properties?.[0] || data;
-        setProperty(prop);
-        setPhotos(prop.imageUrl?.filter(Boolean) || []);
-        setVideos(prop.videoUrl?.filter(Boolean) || []);
-        setEditForm({
-          title: prop.title || '',
-          description: prop.description || '',
-          location: prop.location || '',
-          price: prop.price?.toString() || '',
-          brokerBookingFee: prop.brokerBookingFee?.toString() || '',
-          propertyType: prop.propertyType || 'apartment',
-        });
-        const limits = (subData as any).limits || {};
-        setTier({
-          name: (subData as any).subscriptionTier || 'prop',
-          limits: {
-            maxProperties: limits.maxProperties || 5,
-            maxPhotosPerProperty: limits.maxPhotosPerProperty || 15,
-            maxVideosPerProperty: limits.maxVideosPerProperty || 1,
-            maxVideoSizeMB: limits.maxVideoSizeMB || 500,
-          },
-        });
-      })
-      .catch(() => setError('Failed to load property details'))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const updateCachedProperty = (patch: Partial<Property>) => {
+    detailsQuery.mutate((prev: any) => {
+      if (!prev) return prev;
+      const prop = prev?.property || prev?.properties?.[0] || prev;
+      const updated = { ...prop, ...patch };
+      if (prev?.property) return { ...prev, property: updated };
+      if (prev?.properties?.[0]) return { ...prev, properties: [updated, ...prev.properties.slice(1)] };
+      return updated;
+    }, { revalidate: false });
+  };
 
   const nextPhoto = () => setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
   const prevPhoto = () => setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
@@ -109,7 +120,14 @@ export default function BrokerPropertyDetailPage() {
         imageUrl: photos,
         videoUrl: videos,
       });
-      setProperty((prev) => prev ? { ...prev, ...editForm, price: Number(editForm.price), brokerBookingFee: Number(editForm.brokerBookingFee), imageUrl: photos, videoUrl: videos } : prev);
+      updateCachedProperty({
+        ...editForm,
+        price: Number(editForm.price),
+        brokerBookingFee: Number(editForm.brokerBookingFee),
+        imageUrl: photos,
+        videoUrl: videos,
+      });
+      await revalidateProperties();
       setEditing(false);
     } catch {
       // ignore
@@ -124,6 +142,7 @@ export default function BrokerPropertyDetailPage() {
     setDeleting(true);
     try {
       await webApi.deleteProperty(token, property.id);
+      await revalidateProperties();
       router.push('/dashboard/broker/properties');
     } catch {
       // ignore
@@ -138,7 +157,7 @@ export default function BrokerPropertyDetailPage() {
     setMakingAvailable(true);
     try {
       await webApi.brokerUpdatePropertyAvailability(token, property.id, true);
-      setProperty((prev) => prev ? { ...prev, isAvailable: true } : prev);
+      updateCachedProperty({ isAvailable: true });
       setShowMakeAvailableConfirm(false);
       setMediaDialog({ type: 'success', message: 'Property is now available for bookings.' });
     } catch {
@@ -224,6 +243,7 @@ export default function BrokerPropertyDetailPage() {
         imageUrl: photos,
         videoUrl: videos,
       });
+      updateCachedProperty({ imageUrl: photos, videoUrl: videos });
       setMediaDialog({ type: 'success', message: 'Media updated successfully' });
     } catch {
       setMediaDialog({ type: 'error', message: 'Failed to update media. Please try again.' });
