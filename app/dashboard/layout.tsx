@@ -21,6 +21,12 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');
     const storedRole = localStorage.getItem('zcanopy_role');
     const storedUser = localStorage.getItem('zcanopy_user');
@@ -71,8 +77,8 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen bg-[var(--background)]">
       <Sidebar role={role} user={user} onLogout={logout} isOpen={sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
-      <div className={`flex flex-1 flex-col transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)]/75 px-6 py-3.5 backdrop-blur-md lg:px-8">
+      <div className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-0'}`}>
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)]/75 px-4 py-3.5 backdrop-blur-md sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
               <button
                 onClick={() => setSidebarOpen((v) => !v)}
@@ -96,7 +102,7 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
-        <main className="zc-page flex-1 overflow-y-auto p-6 lg:p-10">{children}</main>
+        <main className="zc-page flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">{children}</main>
       </div>
     </div>
   );

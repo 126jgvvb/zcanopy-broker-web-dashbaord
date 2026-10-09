@@ -50,7 +50,7 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
+    <section className="rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-4 shadow-[var(--zcanopy-shadow)] sm:p-6">
       {(title || action) && (
         <div className="mb-5 flex items-center justify-between gap-3">
           {title ? (

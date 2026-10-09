@@ -446,11 +446,11 @@ export default function BrokerPropertiesPage() {
   if (error) return <ErrorState message={error} />;
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <p className="zc-kicker">Listings</p>
-          <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">My Properties</h2>
+          <h2 className="mt-1 text-3xl text-[var(--zcanopy-card-brown)] sm:text-4xl">My Properties</h2>
           <p className="mt-1 text-[var(--zcanopy-muted)]">Manage and refine your portfolio.</p>
         </div>
         <button
@@ -568,7 +568,7 @@ export default function BrokerPropertiesPage() {
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleLocationSelect(suggestion.description, suggestion.placeId)}
-                        className="w-full px-4 py-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
+                        className="w-full break-words px-4 py-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
                       >
                         {suggestion.description}
                       </button>
@@ -718,18 +718,18 @@ export default function BrokerPropertiesPage() {
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search properties..."
-            className="flex-1 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm"
+            className="min-w-0 flex-1 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm"
           />
           <select
             value={propertyType}
             onChange={(e) => setPropertyType(e.target.value)}
-            className="rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm"
+            className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 shadow-sm sm:w-auto"
           >
             <option value="">All Types</option>
             {PROPERTY_TYPES.map((type) => (
