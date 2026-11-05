@@ -68,6 +68,37 @@ export default function BrokerSubscriptionPage() {
     setShowPaymentDialog(true);
   };
 
+  const handleFreeSubscribe = async (tier: string) => {
+    setSubscribeError('');
+    setSubscribeSuccess('');
+    const token = localStorage.getItem('zcanopy_token');
+    if (!token) return;
+
+    setSubscribing(true);
+    try {
+      const res: any = await webApi.brokerSubscribe(token, { tier });
+      if (res?.success) {
+        setSubscribeSuccess(`Subscribed to ${tier} successfully`);
+        setActiveTier(tier);
+        setExpiresAt(null);
+      } else {
+        setSubscribeError(res?.message || 'Subscription failed');
+      }
+    } catch {
+      setSubscribeError('Network error. Please try again.');
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  const handleSubscribeClick = (tier: Tier) => {
+    if (tier.price <= 0) {
+      void handleFreeSubscribe(tier.tier);
+      return;
+    }
+    openPaymentDialog(tier.tier);
+  };
+
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPaymentError('');
@@ -217,7 +248,7 @@ export default function BrokerSubscriptionPage() {
                 </ul>
                 {!isActive && (
                   <button
-                    onClick={() => openPaymentDialog(tier.tier)}
+                    onClick={() => handleSubscribeClick(tier)}
                     disabled={subscribing}
                     className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
                   >
