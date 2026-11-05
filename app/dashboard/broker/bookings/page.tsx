@@ -21,6 +21,7 @@ export default function BrokerBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');
@@ -49,12 +50,33 @@ export default function BrokerBookingsPage() {
   if (loading) return <LoadingState label="Loading bookings" />;
   if (error) return <ErrorState message={error} />;
 
+  const q = query.trim().toLowerCase();
+  const filteredBookings = q
+    ? bookings.filter((b) => {
+        const phone = (b.customerPhone || '').toLowerCase();
+        const title = (b.propertyTitle || '').toLowerCase();
+        const amount = String(b.amount ?? '').toLowerCase();
+        return phone.includes(q) || title.includes(q) || amount.includes(q);
+      })
+    : bookings;
+
   return (
     <div className="space-y-8">
       <div>
         <p className="zc-kicker">Schedule</p>
         <h2 className="mt-1 text-4xl text-[var(--zcanopy-card-brown)]">Bookings</h2>
         <p className="mt-1 text-[var(--zcanopy-muted)]">Manage your property bookings.</p>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by phone, property title, or amount"
+          className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white px-4 py-2.5 text-sm text-[var(--foreground)] shadow-sm outline-none transition focus:border-[var(--zcanopy-primary)] focus:ring-2 focus:ring-[var(--zcanopy-primary)]/20 sm:max-w-md"
+          aria-label="Search bookings by phone, property title, or amount"
+        />
       </div>
 
       <div className="zc-table-wrap">
@@ -70,7 +92,7 @@ export default function BrokerBookingsPage() {
             </tr>
           </thead>
           <tbody>
-            {bookings.map((booking) => (
+            {filteredBookings.map((booking) => (
               <tr key={booking.id}>
                 <td className="zc-table-primary">{booking.propertyTitle}</td>
                 <td className="zc-table-muted">{booking.customerPhone}</td>
@@ -103,10 +125,10 @@ export default function BrokerBookingsPage() {
                 </td>
               </tr>
             ))}
-            {bookings.length === 0 && (
+            {filteredBookings.length === 0 && (
               <tr>
                 <td colSpan={6} className="zc-table-empty">
-                  No bookings yet.
+                  {bookings.length === 0 ? 'No bookings yet.' : 'No bookings match your search.'}
                 </td>
               </tr>
             )}
