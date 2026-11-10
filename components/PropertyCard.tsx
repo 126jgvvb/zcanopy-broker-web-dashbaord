@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useCallback } from "react";
+import { toCdnUrl } from "@/lib/mediaUrl";
 
 interface PropertyCardProps {
   id: string;
@@ -18,8 +19,8 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ id, title, description, propertyType, location, isAvailable, imageUrl, videoUrl, price, brokerBookingFee, onBook, href = `/properties/${id}` }: PropertyCardProps) {
-  const images = imageUrl?.filter(Boolean) || [];
-  const videos = videoUrl?.filter(Boolean) || [];
+  const images = (imageUrl?.filter(Boolean) || []).map((url) => toCdnUrl(url));
+  const videos = (videoUrl?.filter(Boolean) || []).map((url) => toCdnUrl(url));
   const mainImage = images[0] || "https://via.placeholder.com/600x400?text=No+Image";
 
   const imagesScrollRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,15 @@ export default function PropertyCard({ id, title, description, propertyType, loc
   const cardContent = (
     <div className="group block overflow-hidden rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] shadow-[var(--zcanopy-shadow)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--zcanopy-shadow-hover)]">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[color-mix(in_srgb,var(--zcanopy-card-brown)_8%,white)]">
-        <img src={mainImage} alt={title} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" />
+        <img
+          src={mainImage}
+          alt={title}
+          width={1200}
+          height={900}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+        />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
         <span className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide backdrop-blur-sm ${isAvailable ? "bg-white/90 text-emerald-800" : "bg-white/90 text-rose-800"}`}>
           {isAvailable ? "Available" : "Booked"}
@@ -78,7 +87,15 @@ export default function PropertyCard({ id, title, description, propertyType, loc
             >
               {images.slice(1).map((img, idx) => (
                 <div key={idx} className="h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 snap-center">
-                  <img src={img} alt={`${title} ${idx + 2}`} className="h-full w-full object-cover" />
+                  <img
+                    src={img}
+                    alt={`${title} ${idx + 2}`}
+                    width={240}
+                    height={200}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
               ))}
             </div>
@@ -114,7 +131,16 @@ export default function PropertyCard({ id, title, description, propertyType, loc
             >
               {videos.map((vid, idx) => (
                 <div key={idx} className="relative h-24 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 snap-center">
-                  <video src={vid} className="h-full w-full object-cover" muted />
+                  <video
+                    src={vid}
+                    poster={images[0]}
+                    width={320}
+                    height={240}
+                    preload="none"
+                    playsInline
+                    className="h-full w-full object-cover"
+                    muted
+                  />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white">
                       <Play className="h-4 w-4 fill-current" />

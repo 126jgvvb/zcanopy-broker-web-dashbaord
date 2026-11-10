@@ -248,7 +248,7 @@ export default function BrokerWalletPage() {
                   <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idFrontPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
                     {idFrontPreview ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={idFrontPreview} alt="ID Front" className="h-full w-full object-contain" />
+                      <img src={idFrontPreview} alt="ID Front" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
                     ) : (
                       <div className="text-gray-400">
                         <Upload className="mx-auto h-5 w-5" />
@@ -263,7 +263,7 @@ export default function BrokerWalletPage() {
                   <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idBackPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
                     {idBackPreview ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={idBackPreview} alt="ID Back" className="h-full w-full object-contain" />
+                      <img src={idBackPreview} alt="ID Back" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
                     ) : (
                       <div className="text-gray-400">
                         <Upload className="mx-auto h-5 w-5" />
@@ -294,7 +294,7 @@ export default function BrokerWalletPage() {
                 <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idFrontPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
                   {idFrontPreview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={idFrontPreview} alt="ID Front" className="h-full w-full object-contain" />
+                    <img src={idFrontPreview} alt="ID Front" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
                   ) : (
                     <div className="text-gray-400">
                       <IdCard className="mx-auto h-5 w-5" />
@@ -309,7 +309,7 @@ export default function BrokerWalletPage() {
                 <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idBackPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
                   {idBackPreview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={idBackPreview} alt="ID Back" className="h-full w-full object-contain" />
+                    <img src={idBackPreview} alt="ID Back" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
                   ) : (
                     <div className="text-gray-400">
                       <IdCard className="mx-auto h-5 w-5" />

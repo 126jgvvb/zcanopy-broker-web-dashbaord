@@ -1,5 +1,6 @@
 import { mockData } from './mockData';
 import { decryptResponse } from './crypto';
+import { optimizeImageFile } from './mediaOptimization';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
 
@@ -41,9 +42,89 @@ async function getUploadPresignedUrl(filename: string, contentType: string, fold
   return parseJsonResponse(res) as Promise<PresignResponse>;
 }
 
-export async function uploadToSpaces(file: File, folder = 'properties'): Promise<string> {
+const VIDEO_FILE_PATTERN =
+  /\.(mp4|m4v|mov|webm|3gp|3g2|avi|mkv|mts|m2ts|wmv|flv|ogv|mpeg|mpg)$/i;
+const TRANSCODE_POLL_INTERVAL_MS = 3000;
+// The server may keep working after this, and because it replaces the object
+// in place the original URL still ends up pointing at the optimised file.
+const TRANSCODE_TIMEOUT_MS = 5 * 60 * 1000;
+
+function isVideoUpload(file: File): boolean {
+  return file.type?.startsWith('video/') || VIDEO_FILE_PATTERN.test(file.name);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function parseUploadJson<T>(res: Response): Promise<T | null> {
+  const text = await res.text();
+  if (!text) return null;
   try {
-    const { uploadUrl, publicUrl } = await getUploadPresignedUrl(file.name, file.type, folder);
+    const parsed = JSON.parse(text);
+    return (parsed?.encrypted ? await decryptResponse(parsed) : parsed) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ask the gateway to re-encode an uploaded video in the background, then wait
+ * for it to finish. Always resolves to a usable URL: if transcoding fails or
+ * takes too long we keep the original upload rather than breaking the flow.
+ */
+async function waitForVideoTranscode(key: string, fallbackUrl: string): Promise<string> {
+  if (!key) return fallbackUrl;
+
+  try {
+    const startRes = await fetch(buildApiUrl('/upload/transcode'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+      cache: 'no-store',
+    });
+    if (!startRes.ok) return fallbackUrl;
+
+    const started = await parseUploadJson<{ jobId?: string; status?: string; publicUrl?: string | null }>(startRes);
+    if (started?.status === 'done' && started.publicUrl) return started.publicUrl;
+    if (!started?.jobId) return fallbackUrl;
+
+    const deadline = Date.now() + TRANSCODE_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await delay(TRANSCODE_POLL_INTERVAL_MS);
+
+      const statusRes = await fetch(
+        buildApiUrl(`/upload/transcode/${encodeURIComponent(started.jobId)}`),
+        { cache: 'no-store' },
+      );
+      if (statusRes.status === 404) return fallbackUrl;
+      if (!statusRes.ok) continue;
+
+      const job = await parseUploadJson<{ status?: string; publicUrl?: string | null }>(statusRes);
+      if (!job) continue;
+      if (job.status === 'done') return job.publicUrl || fallbackUrl;
+      if (job.status === 'failed') return fallbackUrl;
+    }
+  } catch {
+    // Fall through to the original upload.
+  }
+
+  return fallbackUrl;
+}
+
+export async function uploadToSpaces(file: File, folder = 'properties'): Promise<string> {
+  // Compress/resize phone captures (and convert to WebP) before they leave the
+  // device. Videos pass through unchanged; their poster frame is generated
+  // separately for previews.
+  const uploadFile = await optimizeImageFile(file);
+  const isVideo = isVideoUpload(file);
+
+  try {
+    const { uploadUrl, publicUrl, key } = await getUploadPresignedUrl(
+      uploadFile.name,
+      uploadFile.type,
+      folder,
+    );
 
     if (!uploadUrl) {
       throw new Error('Missing upload URL from presign response');
@@ -51,9 +132,9 @@ export async function uploadToSpaces(file: File, folder = 'properties'): Promise
 
     const res = await fetch(uploadUrl, {
       method: 'PUT',
-      body: file,
+      body: uploadFile,
       headers: {
-        'Content-Type': file.type,
+        'Content-Type': uploadFile.type,
       },
     });
 
@@ -61,16 +142,25 @@ export async function uploadToSpaces(file: File, folder = 'properties'): Promise
       throw new Error(`Upload failed: ${res.status}`);
     }
 
-    return publicUrl;
+    // Phone videos are often 15-30 MB with an unbounded bitrate, which buffers
+    // badly on mobile data. The gateway re-encodes them to a sane H.264/AAC MP4
+    // and replaces the object in place.
+    return isVideo ? waitForVideoTranscode(key, publicUrl) : publicUrl;
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      return uploadToSpacesViaProxy(file, folder);
+      const proxied = await uploadToSpacesViaProxy(uploadFile, folder);
+      return isVideo
+        ? waitForVideoTranscode(proxied.key, proxied.publicUrl)
+        : proxied.publicUrl;
     }
     throw error;
   }
 }
 
-async function uploadToSpacesViaProxy(file: File, folder = 'properties'): Promise<string> {
+async function uploadToSpacesViaProxy(
+  file: File,
+  folder = 'properties',
+): Promise<{ key: string; publicUrl: string }> {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -85,7 +175,7 @@ async function uploadToSpacesViaProxy(file: File, folder = 'properties'): Promis
   }
 
   const data = await res.json();
-  return data.publicUrl;
+  return { key: data.key, publicUrl: data.publicUrl };
 }
 
 export async function uploadMultipleToSpaces(files: File[], folder = 'properties'): Promise<string[]> {

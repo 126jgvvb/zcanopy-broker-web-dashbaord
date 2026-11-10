@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import { webApi, uploadToSpaces } from '@/lib/api';
+import { createVideoPoster } from '@/lib/mediaOptimization';
+import { toCdnUrl } from '@/lib/mediaUrl';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import GoogleMap from '@/components/GoogleMap';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
@@ -67,6 +69,7 @@ export default function BrokerPropertyDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
+  const [videoPosters, setVideoPosters] = useState<Record<string, string>>({});
   const [mediaSaving, setMediaSaving] = useState(false);
   const [mediaDialog, setMediaDialog] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -218,9 +221,17 @@ export default function BrokerPropertyDetailPage() {
       return;
     }
     setVideoUploading(true);
+    // Extract the poster in the background so a slow decode never delays the
+    // uploaded video appearing in the preview.
+    const posterPromise = createVideoPoster(file);
     try {
       const url = await uploadToSpaces(file, 'properties');
       setVideos((prev) => [...prev, url]);
+      setVideoUploading(false);
+      const poster = await posterPromise;
+      if (poster?.dataUrl) {
+        setVideoPosters((prev) => ({ ...prev, [url]: poster.dataUrl }));
+      }
     } catch {
       setMediaDialog({ type: 'error', message: 'Failed to upload video. Please try again.' });
     } finally {
@@ -464,7 +475,14 @@ export default function BrokerPropertyDetailPage() {
             ) : photos.length > 0 ? (
               <div className="relative">
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gray-100">
-                  <img src={photos[currentPhotoIndex]} alt={property.title} className="h-full w-full object-cover" />
+                  <img
+                    src={photos[currentPhotoIndex]}
+                    alt={property.title}
+                    width={1200}
+                    height={900}
+                    decoding="async"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 {photos.length > 1 && (
                   <div className="mt-4 flex items-center justify-between">
@@ -486,7 +504,7 @@ export default function BrokerPropertyDetailPage() {
                 <div className="mt-4 flex gap-2 overflow-x-auto">
                   {photos.map((photo, idx) => (
                     <div key={idx} className="relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-lg">
-                      <img src={photo} alt="" className="h-full w-full object-cover" />
+                      <img src={photo} alt="" width={320} height={256} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => {
@@ -528,10 +546,27 @@ export default function BrokerPropertyDetailPage() {
               <div className="space-y-4">
                 {videos.map((video, idx) => (
                   <div key={idx} className="relative aspect-video w-full overflow-hidden rounded-2xl bg-gray-100">
-                    <video src={video} controls className="h-full w-full object-cover" />
+                    <video
+                      src={toCdnUrl(video)}
+                      poster={videoPosters[video] || toCdnUrl(photos[0])}
+                      width={1920}
+                      height={1080}
+                      preload="none"
+                      playsInline
+                      controls
+                      className="h-full w-full object-cover"
+                    />
                       <button
                         type="button"
-                        onClick={() => setVideos((prev) => prev.filter((_, i) => i !== idx))}
+                        onClick={() => {
+                          setVideos((prev) => prev.filter((_, i) => i !== idx));
+                          setVideoPosters((prev) => {
+                            if (!prev[video]) return prev;
+                            const next = { ...prev };
+                            delete next[video];
+                            return next;
+                          });
+                        }}
                         className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-sm text-white"
                       >
                         <X className="h-4 w-4" />

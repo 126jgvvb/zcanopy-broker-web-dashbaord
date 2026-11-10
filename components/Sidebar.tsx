@@ -80,6 +80,8 @@ export default function Sidebar({ role, user, onLogout, isOpen, onToggle }: Side
               src="/logo.svg"
               alt="ZCanopy"
               className="h-10 w-10 object-contain"
+              width={40}
+              height={40}
               style={{ mixBlendMode: 'multiply' }}
             />
             <div>

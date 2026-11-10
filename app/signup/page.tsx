@@ -30,7 +30,7 @@ function IdUpload({
       >
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt={label} className="h-full w-full object-contain" />
+          <img src={preview} alt={label} width={640} height={360} decoding="async" className="h-full w-full object-contain" />
         ) : (
           <div className="text-gray-400">
             <IdCard className="mx-auto h-5 w-5" />
@@ -262,6 +262,8 @@ export default function SignUpPage() {
             src="/logo.svg"
             alt="ZCanopy"
             className="mx-auto h-10 w-10 object-contain"
+            width={40}
+            height={40}
             style={{ mixBlendMode: 'multiply' }}
           />
           <p className="zc-kicker mt-3">Get started</p>

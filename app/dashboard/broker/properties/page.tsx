@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import PropertyCard from '@/components/PropertyCard';
 import { webApi, uploadToSpaces } from '@/lib/api';
+import { createVideoPoster } from '@/lib/mediaOptimization';
+import { toCdnUrl } from '@/lib/mediaUrl';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
@@ -145,6 +147,7 @@ export default function BrokerPropertiesPage() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [video, setVideo] = useState<string | null>(null);
+  const [videoPoster, setVideoPoster] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
   const [uploadDialog, setUploadDialog] = useState<{ type: 'error'; message: string } | null>(null);
@@ -381,9 +384,16 @@ export default function BrokerPropertiesPage() {
       return;
     }
     setVideoUploading(true);
+    // Start poster extraction immediately, but never let it delay the video
+    // preview: the upload result is shown as soon as it lands.
+    const posterPromise = createVideoPoster(file);
     try {
       const url = await uploadToSpaces(file, 'properties');
       setVideo(url);
+      setVideoPoster(null);
+      setVideoUploading(false);
+      const poster = await posterPromise;
+      if (poster?.dataUrl) setVideoPoster(poster.dataUrl);
     } catch {
       setUploadDialog({ type: 'error', message: 'Failed to upload video. Please try again.' });
     } finally {
@@ -423,6 +433,7 @@ export default function BrokerPropertiesPage() {
       setLocationEditable(false);
       setPhotos([]);
       setVideo(null);
+      setVideoPoster(null);
       await revalidateProperties();
     } catch {
       // ignore
@@ -652,7 +663,7 @@ export default function BrokerPropertiesPage() {
                 <div className="mt-3 flex gap-2 overflow-x-auto rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-table-head)] p-2">
                   {photos.map((src, idx) => (
                     <div key={idx} className="relative h-24 w-32 flex-shrink-0 overflow-hidden rounded-lg ring-1 ring-[var(--zcanopy-border)]">
-                      <img src={src} alt={`Upload ${idx + 1}`} className="h-full w-full object-cover" />
+                      <img src={src} alt={`Upload ${idx + 1}`} width={256} height={192} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
@@ -683,10 +694,21 @@ export default function BrokerPropertiesPage() {
               )}
               {video && (
                 <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-table-head)] p-3">
-                  <video src={video} className="h-24 w-32 rounded-lg object-cover ring-1 ring-[var(--zcanopy-border)]" />
+                  <video
+                    src={toCdnUrl(video)}
+                    poster={videoPoster ?? undefined}
+                    width={320}
+                    height={192}
+                    preload="none"
+                    playsInline
+                    className="h-24 w-32 rounded-lg object-cover ring-1 ring-[var(--zcanopy-border)]"
+                  />
                   <button
                     type="button"
-                    onClick={() => setVideo(null)}
+                    onClick={() => {
+                      setVideo(null);
+                      setVideoPoster(null);
+                    }}
                     className="rounded-full bg-rose-700/90 px-3 py-1 text-xs font-semibold text-white"
                   >
                     Remove video

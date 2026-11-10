@@ -168,6 +168,8 @@ export default function LoginPage() {
             src="/logo.svg"
             alt="ZCanopy"
             className="mx-auto h-10 w-10 object-contain"
+            width={40}
+            height={40}
             style={{ mixBlendMode: 'multiply' }}
           />
           <p className="zc-kicker mt-3">Broker console</p>

@@ -121,7 +121,7 @@ export default function BrokerExplorerPage() {
           <div key={property.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-colors hover:border-[var(--zcanopy-accent-gold)]">
             <div className="h-48 w-full bg-gray-100">
               {property.imageUrl && property.imageUrl[0] ? (
-                <img src={property.imageUrl[0]} alt={property.title} className="h-full w-full object-cover" />
+                <img src={property.imageUrl[0]} alt={property.title} width={1200} height={800} loading="lazy" decoding="async" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-gray-400">No Image</div>
               )}
