@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { webApi, uploadToSpaces } from '@/lib/api';
+import { webApi, type LandlordVerificationStatus } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { COLORS } from '@/lib/theme';
-import { IdCard, Shield, AlertTriangle, CheckCircle, Clock, Upload } from 'lucide-react';
+import LandlordTitleSearchForm from '@/components/LandlordTitleSearchForm';
+import { AlertTriangle, CheckCircle, KeyRound } from 'lucide-react';
 
 interface WalletTransaction {
   id: string;
@@ -15,15 +16,8 @@ interface WalletTransaction {
   createdAt: string;
 }
 
-interface VerificationStatus {
-  isVerified: boolean;
-  idFrontUrl?: string;
-  idBackUrl?: string;
-  verificationStatus: 'unsubmitted' | 'pending' | 'approved' | 'rejected';
-}
-
 export default function BrokerWalletPage() {
-  const [wallet, setWallet] = useState<{ balance?: number; currency?: string; walletId?: string; name?: string; minimumWithdrawal?: number } | null>(null);
+  const [wallet, setWallet] = useState<{ balance?: number; heldBalance?: number; currency?: string; walletId?: string; name?: string; minimumWithdrawal?: number } | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,14 +28,21 @@ export default function BrokerWalletPage() {
   const [phone, setPhone] = useState('');
   const [provider, setProvider] = useState('MTN');
   const [payeeName, setPayeeName] = useState('');
-  const [verification, setVerification] = useState<VerificationStatus | null>(null);
-  const [uploadingDocs, setUploadingDocs] = useState(false);
-  const [docError, setDocError] = useState('');
-  const [docSuccess, setDocSuccess] = useState('');
-  const [idFront, setIdFront] = useState<File | null>(null);
-  const [idBack, setIdBack] = useState<File | null>(null);
-  const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null);
-  const [idBackPreview, setIdBackPreview] = useState<string | null>(null);
+  const [landlordStatus, setLandlordStatus] = useState<LandlordVerificationStatus | null>(null);
+
+  // Landlord OTP withdrawal flow state
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otp, setOtp] = useState('');
+
+  const reloadLandlordStatus = async (token: string) => {
+    try {
+      const status: any = await webApi.getLandlordDetailsStatus(token);
+      setLandlordStatus(status || { status: 'unsubmitted' });
+    } catch {
+      setLandlordStatus({ status: 'unsubmitted' });
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');
@@ -50,91 +51,47 @@ export default function BrokerWalletPage() {
     Promise.all([
       webApi.brokerWallet(token),
       webApi.brokerWalletTransactions(token),
-      webApi.getVerificationStatus(token),
+      webApi.getLandlordDetailsStatus(token).catch(() => ({ status: 'unsubmitted' })),
     ])
-      .then(([walletData, txData, verifyData]: any) => {
+      .then(([walletData, txData, landlordData]: any) => {
         setWallet(walletData);
         setTransactions(txData.transactions || []);
-        setVerification(verifyData);
+        setLandlordStatus(landlordData || { status: 'unsubmitted' });
       })
       .catch(() => setError('Failed to load wallet data'))
       .finally(() => setLoading(false));
   }, []);
 
-  const pick = (setFile: (f: File | null) => void, setPreview: (p: string | null) => void) => {
-    return (file: File | null) => {
-      setFile(file);
-      setPreview(file ? URL.createObjectURL(file) : null);
-    };
-  };
+  const canWithdraw = landlordStatus?.status === 'approved';
 
-  const handleDocUpload = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setDocError('');
-    setDocSuccess('');
-    
-    if (!idFront || !idBack) {
-      setDocError('Please upload both ID images');
+    setWithdrawError('');
+    setWithdrawSuccess('');
+
+    if (!canWithdraw) {
+      setWithdrawError('Your landlord & title details must be approved before withdrawing funds.');
       return;
     }
 
-    setUploadingDocs(true);
+    setOtpSending(true);
     try {
-      const [idFrontUrl, idBackUrl] = await Promise.all([
-        uploadToSpaces(idFront, 'broker-docs'),
-        uploadToSpaces(idBack, 'broker-docs'),
-      ]);
-
       const token = localStorage.getItem('zcanopy_token');
       if (!token) return;
 
-      const res: any = await webApi.submitVerificationDocuments(token, { idFrontUrl, idBackUrl });
-      if (res.success) {
-        setDocSuccess('Documents submitted successfully! Verification is in progress.');
-        const refreshed = await webApi.getVerificationStatus(token);
-        setVerification(refreshed as VerificationStatus);
-        setIdFront(null);
-        setIdBack(null);
-        setIdFrontPreview(null);
-        setIdBackPreview(null);
+      const res: any = await webApi.requestWithdrawalOtp(token);
+      if (res?.success) {
+        setOtpSent(true);
+        setWithdrawSuccess(res.message || 'An OTP has been sent to the landlord. Enter it to complete the withdrawal.');
       } else {
-        setDocError(res.message || 'Failed to submit documents');
+        setWithdrawError(res?.message || 'Failed to send OTP.');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Network error. Please try again.';
-      setDocError(message);
+      setWithdrawError(err instanceof Error ? err.message : 'Failed to send OTP.');
     } finally {
-      setUploadingDocs(false);
+      setOtpSending(false);
     }
   };
-
-  const getVerificationBadge = () => {
-    if (!verification) return null;
-
-    const hasUploadedDocuments =
-      (verification.idFrontUrl && verification.idBackUrl) &&
-      verification.idFrontUrl.startsWith('https://zcanopy-properties-media.fra1.digitaloceanspaces.com') &&
-      verification.idBackUrl.startsWith('https://zcanopy-properties-media.fra1.digitaloceanspaces.com');
-
-    const status = verification.isVerified ? 'approved' : hasUploadedDocuments ? 'pending' : 'unsubmitted';
-
-    const configs = {
-      unsubmitted: { color: 'bg-gray-100 text-gray-600', icon: AlertTriangle, text: 'Not Submitted' },
-      pending: { color: 'bg-yellow-100 text-yellow-700', icon: Clock, text: 'Under Review' },
-      approved: { color: 'bg-green-100 text-green-700', icon: CheckCircle, text: 'Verified' },
-      rejected: { color: 'bg-red-100 text-red-600', icon: AlertTriangle, text: 'Rejected' },
-    };
-    const config = configs[status as keyof typeof configs] || configs.unsubmitted;
-    const Icon = config.icon;
-    return (
-      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${config.color}`}>
-        <Icon className="h-3.5 w-3.5" />
-        {config.text}
-      </span>
-    );
-  };
-
-  const canWithdraw = verification?.verificationStatus === 'approved';
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +99,12 @@ export default function BrokerWalletPage() {
     setWithdrawSuccess('');
 
     if (!canWithdraw) {
-      setWithdrawError('You must verify your identity before withdrawing funds.');
+      setWithdrawError('Your landlord & title details must be approved before withdrawing funds.');
+      return;
+    }
+
+    if (!otp.trim()) {
+      setWithdrawError('Enter the OTP that was sent to the landlord to authorise this withdrawal.');
       return;
     }
 
@@ -170,6 +132,7 @@ export default function BrokerWalletPage() {
         phoneNumber: phone,
         provider,
         payeeName: payeeName || undefined,
+        otp: otp.trim(),
       });
       if ((res as any).success || (res as any).newBalance !== undefined) {
         setWithdrawSuccess('Withdrawal initiated successfully');
@@ -177,6 +140,8 @@ export default function BrokerWalletPage() {
         setAmount('');
         setPhone('');
         setPayeeName('');
+        setOtp('');
+        setOtpSent(false);
       } else {
         setWithdrawError((res as any).message || 'Withdrawal failed');
       }
@@ -197,12 +162,18 @@ export default function BrokerWalletPage() {
         <p className="text-gray-500">Your earnings and payouts.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Panel title="Available Balance">
           <p className="text-3xl font-bold text-[var(--zcanopy-primary)]">
             {wallet ? `UGX ${(wallet.balance ?? 0).toLocaleString()}` : 'UGX 0'}
           </p>
           <p className="text-sm text-gray-500">Wallet ID: {wallet?.walletId || '-'}</p>
+        </Panel>
+        <Panel title="Held in Escrow">
+          <p className="text-3xl font-bold text-[var(--zcanopy-card-brown)]">
+            {wallet ? `UGX ${(wallet.heldBalance ?? 0).toLocaleString()}` : 'UGX 0'}
+          </p>
+          <p className="text-sm text-gray-500">Booking funds awaiting customer approval — not withdrawable yet</p>
         </Panel>
         <Panel title="Currency">
           <p className="text-3xl font-bold text-[var(--zcanopy-card-brown)]">{wallet?.currency || 'UGX'}</p>
@@ -214,119 +185,14 @@ export default function BrokerWalletPage() {
         </Panel>
       </div>
 
-      <Panel title="Document Verification" action={<div className="flex items-center gap-2">{getVerificationBadge()}</div>}>
-        {verification?.verificationStatus === 'approved' ? (
-          <div className="flex items-center gap-3 rounded-lg bg-green-50 p-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-            <div>
-              <p className="font-medium text-green-800">Identity Verified</p>
-              <p className="text-sm text-green-600">Your documents have been approved. You can now withdraw funds.</p>
-            </div>
-          </div>
-        ) : verification?.verificationStatus === 'pending' ? (
-          <div className="flex items-center gap-3 rounded-lg bg-yellow-50 p-4">
-            <Clock className="h-8 w-8 text-yellow-600" />
-            <div>
-              <p className="font-medium text-yellow-800">Verification In Progress</p>
-              <p className="text-sm text-yellow-600">Your documents are being reviewed. Withdrawals will be enabled once approved.</p>
-            </div>
-          </div>
-        ) : verification?.verificationStatus === 'rejected' ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-              <div>
-                <p className="font-medium text-red-800">Verification Rejected</p>
-                <p className="text-sm text-red-600">Please upload clearer images of your ID documents.</p>
-              </div>
-            </div>
-            <form onSubmit={handleDocUpload} className="space-y-3">
-              <p className="text-sm font-medium text-gray-700">Upload ID Documents</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="mb-1 text-xs font-medium text-gray-600">ID Front</p>
-                  <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idFrontPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
-                    {idFrontPreview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={idFrontPreview} alt="ID Front" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
-                    ) : (
-                      <div className="text-gray-400">
-                        <Upload className="mx-auto h-5 w-5" />
-                        <p className="mt-1 text-xs">Upload</p>
-                      </div>
-                    )}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(setIdFront, setIdFrontPreview)(e.target.files?.[0] ?? null)} />
-                  </label>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs font-medium text-gray-600">ID Back</p>
-                  <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idBackPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
-                    {idBackPreview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={idBackPreview} alt="ID Back" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
-                    ) : (
-                      <div className="text-gray-400">
-                        <Upload className="mx-auto h-5 w-5" />
-                        <p className="mt-1 text-xs">Upload</p>
-                      </div>
-                    )}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(setIdBack, setIdBackPreview)(e.target.files?.[0] ?? null)} />
-                  </label>
-                </div>
-              </div>
-              {docError && <p className="text-xs text-red-600">{docError}</p>}
-              {docSuccess && <p className="text-xs text-green-600">{docSuccess}</p>}
-              <button type="submit" disabled={uploadingDocs} className="w-full rounded-lg bg-[var(--zcanopy-primary)] py-2 text-sm font-medium text-white transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
-                {uploadingDocs ? 'Uploading...' : 'Submit Documents'}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <form onSubmit={handleDocUpload} className="space-y-3">
-            <div className="flex items-center gap-3 rounded-lg bg-orange-50 p-3">
-              <Shield className="h-6 w-6 text-orange-500" />
-              <p className="text-sm text-orange-700">Verify your identity to enable withdrawals</p>
-            </div>
-            <p className="text-sm font-medium text-gray-700">Upload ID Documents</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="mb-1 text-xs font-medium text-gray-600">ID Front</p>
-                <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idFrontPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
-                  {idFrontPreview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={idFrontPreview} alt="ID Front" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
-                  ) : (
-                    <div className="text-gray-400">
-                      <IdCard className="mx-auto h-5 w-5" />
-                      <p className="mt-1 text-xs">Upload</p>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(setIdFront, setIdFrontPreview)(e.target.files?.[0] ?? null)} />
-                </label>
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-gray-600">ID Back</p>
-                <label className={`flex h-20 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition-colors ${idBackPreview ? 'border-[var(--zcanopy-primary)] bg-green-50' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'}`}>
-                  {idBackPreview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={idBackPreview} alt="ID Back" width={640} height={360} decoding="async" className="h-full w-full object-contain" />
-                  ) : (
-                    <div className="text-gray-400">
-                      <IdCard className="mx-auto h-5 w-5" />
-                      <p className="mt-1 text-xs">Upload</p>
-                    </div>
-                  )}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(setIdBack, setIdBackPreview)(e.target.files?.[0] ?? null)} />
-                </label>
-              </div>
-            </div>
-            {docError && <p className="text-xs text-red-600">{docError}</p>}
-            {docSuccess && <p className="text-xs text-green-600">{docSuccess}</p>}
-            <button type="submit" disabled={uploadingDocs} className="w-full rounded-lg bg-[var(--zcanopy-primary)] py-2 text-sm font-medium text-white transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50">
-              {uploadingDocs ? 'Uploading...' : 'Submit Documents'}
-            </button>
-          </form>
-        )}
+      <Panel title="Landlord &amp; Title Verification">
+        <LandlordTitleSearchForm
+          initialStatus={landlordStatus}
+          onSubmitted={() => {
+            const token = localStorage.getItem('zcanopy_token');
+            if (token) reloadLandlordStatus(token);
+          }}
+        />
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -335,8 +201,28 @@ export default function BrokerWalletPage() {
             <div className="mb-4 rounded-lg bg-orange-50 p-3">
               <p className="flex items-center gap-2 text-sm text-orange-700">
                 <AlertTriangle className="h-4 w-4" />
-                Verify your identity to withdraw funds
+                Get your landlord &amp; title details approved to withdraw funds
               </p>
+            </div>
+          )}
+          {canWithdraw && !otpSent && (
+            <div className="mb-4 flex items-start gap-3 rounded-lg bg-blue-50 p-3">
+              <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+              <div className="space-y-2">
+                <p className="text-sm text-blue-700">
+                  Every withdrawal requires an OTP sent to the landlord (phone number or email on file).
+                  Request the code, obtain it from the landlord, then complete the withdrawal.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={otpSending}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: COLORS.primary }}
+                >
+                  {otpSending ? 'Sending OTP…' : 'Send OTP to landlord'}
+                </button>
+              </div>
             </div>
           )}
           <form onSubmit={handleWithdraw} className="space-y-4">
@@ -389,11 +275,34 @@ export default function BrokerWalletPage() {
                 disabled={!canWithdraw}
               />
             </div>
+            {otpSent && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Landlord OTP</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-center tracking-[0.3em] shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                  placeholder="123456"
+                  required
+                />
+                <p className="mt-1 text-xs text-[var(--zcanopy-muted)]">
+                  Sent to the landlord&apos;s phone number or email on file. Valid for a few minutes.
+                </p>
+              </div>
+            )}
             {withdrawError && <p className="text-sm text-red-600">{withdrawError}</p>}
-            {withdrawSuccess && <p className="text-sm text-green-600">{withdrawSuccess}</p>}
+            {withdrawSuccess && (
+              <p className="flex items-center gap-1.5 text-sm text-green-600">
+                <CheckCircle className="h-4 w-4" />
+                {withdrawSuccess}
+              </p>
+            )}
             <button
               type="submit"
-              disabled={withdrawing || !canWithdraw}
+              disabled={withdrawing || !canWithdraw || !otpSent}
               className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
             >
               {withdrawing ? 'Processing...' : 'Withdraw'}

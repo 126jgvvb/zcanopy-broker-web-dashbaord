@@ -4,6 +4,19 @@ import { optimizeImageFile } from './mediaOptimization';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
 
+export interface LandlordVerificationStatus {
+  status: 'unsubmitted' | 'pending' | 'approved' | 'rejected';
+  instrumentNumber?: string | null;
+  rejectionReason?: string | null;
+  submittedAt?: string | null;
+  landlord?: {
+    fullName?: string;
+    nin?: string;
+    mzoDistrict?: string;
+    tenureType?: string;
+  } | null;
+}
+
 export interface PresignResponse {
   uploadUrl: string;
   key: string;
@@ -483,6 +496,20 @@ export const webApi = {
 
   getVerificationStatus: (token: string) =>
     apiFetch<{ isVerified: boolean; idFrontUrl?: string; idBackUrl?: string; verificationStatus: string }>('/web/broker/verification/status', { token, fallback: { isVerified: false, verificationStatus: 'unsubmitted' } }),
+
+  /* ---- Landlord & title (UgNLIS) verification ---- */
+
+  submitLandlordDetails: (token: string, payload: unknown) =>
+    apiFetch('/web/broker/landlord-details', { method: 'POST', token, body: payload, fallback: { success: true, message: 'Landlord details submitted (mock)', status: 'pending' } }),
+
+  sendLandlordBrokerOtps: (token: string, body: { fullName: string; nin: string; phoneNumber: string }) =>
+    apiFetch('/web/broker/landlord-details/send-broker-otps', { method: 'POST', token, body, fallback: { success: true, message: 'Confirmation OTPs sent (mock)' } }),
+
+  getLandlordDetailsStatus: (token: string) =>
+    apiFetch<LandlordVerificationStatus>('/web/broker/landlord-details/status', { token, fallback: { status: 'unsubmitted' } }),
+
+  requestWithdrawalOtp: (token: string) =>
+    apiFetch('/web/broker/withdraw/request-otp', { method: 'POST', token, body: {}, fallback: { success: true, message: 'OTP sent to landlord (mock)' } }),
 
   brokerLogout: (token: string) =>
     apiFetch('/web/broker/logout', { method: 'POST', token, body: {}, fallback: { success: true, message: 'Logged out successfully' } }),
