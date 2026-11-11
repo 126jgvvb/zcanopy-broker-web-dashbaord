@@ -9,6 +9,9 @@ export interface LandlordVerificationStatus {
   instrumentNumber?: string | null;
   rejectionReason?: string | null;
   submittedAt?: string | null;
+  verificationId?: string | null;
+  needsLandlordAuthorization?: boolean;
+  landlordPhoneMasked?: string | null;
   landlord?: {
     fullName?: string;
     nin?: string;
@@ -504,6 +507,23 @@ export const webApi = {
 
   sendLandlordBrokerOtps: (token: string, body: { fullName: string; nin: string; phoneNumber: string }) =>
     apiFetch('/web/broker/landlord-details/send-broker-otps', { method: 'POST', token, body, fallback: { success: true, message: 'Confirmation OTPs sent (mock)' } }),
+
+  // The landlord-authorisation calls deliberately have no mock fallback: a
+  // faked "verified" response would let a broker believe they were approved
+  // when the server never approved them.
+  sendLandlordAuthorizationOtp: (token: string, body: { verificationId: string }) =>
+    apiFetch('/web/broker/landlord-details/authorization-otp', {
+      method: 'POST',
+      token,
+      body,
+    }),
+
+  verifyLandlordAuthorization: (token: string, body: { verificationId: string; otp: string; landlordNin: string }) =>
+    apiFetch('/web/broker/landlord-details/verify-authorization', {
+      method: 'POST',
+      token,
+      body,
+    }),
 
   getLandlordDetailsStatus: (token: string) =>
     apiFetch<LandlordVerificationStatus>('/web/broker/landlord-details/status', { token, fallback: { status: 'unsubmitted' } }),

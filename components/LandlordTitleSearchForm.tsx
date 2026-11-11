@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ShieldCheck,
   Info,
@@ -13,6 +13,8 @@ import {
   Clock,
   XCircle,
   KeyRound,
+  ChevronDown,
+  Phone,
 } from 'lucide-react';
 import { webApi, type LandlordVerificationStatus } from '@/lib/api';
 
@@ -172,32 +174,57 @@ function SectionCard({
   subtitle,
   icon: Icon,
   children,
+  collapsible = false,
+  open = true,
+  onToggle,
 }: {
   step: number;
   title: string;
   subtitle?: string;
   icon: React.ElementType;
   children: React.ReactNode;
+  collapsible?: boolean;
+  open?: boolean;
+  onToggle?: () => void;
 }) {
+  const header = (
+    <div className="flex items-start gap-3">
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-md"
+        style={{ backgroundColor: 'var(--zcanopy-primary)' }}
+        aria-hidden
+      >
+        <Icon className="h-4.5 w-4.5" size={18} />
+      </span>
+      <div>
+        <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--zcanopy-card-brown)]">
+          <span className="text-xs font-bold uppercase tracking-wider text-[var(--zcanopy-muted)]">Section {step}</span>
+          {title}
+        </h3>
+        {subtitle && <p className="mt-0.5 text-xs text-[var(--zcanopy-muted)]">{subtitle}</p>}
+      </div>
+    </div>
+  );
+
   return (
     <section className="rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-4 shadow-[var(--zcanopy-shadow)] sm:p-6">
-      <div className="mb-5 flex items-start gap-3">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-md"
-          style={{ backgroundColor: 'var(--zcanopy-primary)' }}
-          aria-hidden
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className={`flex w-full items-center justify-between gap-3 text-left ${open ? 'mb-5' : ''}`}
         >
-          <Icon className="h-4.5 w-4.5" size={18} />
-        </span>
-        <div>
-          <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--zcanopy-card-brown)]">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--zcanopy-muted)]">Section {step}</span>
-            {title}
-          </h3>
-          {subtitle && <p className="mt-0.5 text-xs text-[var(--zcanopy-muted)]">{subtitle}</p>}
-        </div>
-      </div>
-      {children}
+          {header}
+          <ChevronDown
+            className={`h-5 w-5 shrink-0 text-[var(--zcanopy-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
+            aria-hidden
+          />
+        </button>
+      ) : (
+        <div className="mb-5">{header}</div>
+      )}
+      {collapsible && !open ? null : children}
     </section>
   );
 }
@@ -239,6 +266,33 @@ export default function LandlordTitleSearchForm({
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [submittedLocally, setSubmittedLocally] = useState(false);
 
+  /* Landlord authorisation flow — triggered when the landlord's NIN is already
+   * verified for another broker. The landlord must receive an OTP and the
+   * requesting broker must confirm their own NIN. */
+  const [landlordAuth, setLandlordAuth] = useState<{ verificationId: string; phoneMasked: string } | null>(null);
+  const [landlordOtpSent, setLandlordOtpSent] = useState(false);
+  const [landlordOtp, setLandlordOtp] = useState('');
+  const [landlordNin, setLandlordNin] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [authNotice, setAuthNotice] = useState('');
+  const [authCollapsed, setAuthCollapsed] = useState(false);
+
+  /* Collapse the input cards once the submission is under review or approved
+   * so the rest of the dashboard is easy to scroll to. Each section can still
+   * be expanded individually for reference. */
+  const [openSections, setOpenSections] = useState<Record<number, boolean>>({
+    1: true,
+    2: true,
+    3: true,
+  });
+
+  const setAllSectionsOpen = (open: boolean) =>
+    setOpenSections({ 1: open, 2: open, 3: open });
+
+  const toggleSection = (step: number) =>
+    setOpenSections((prev) => ({ ...prev, [step]: !prev[step] }));
+
   /* Cross-broker OTP confirmation flow */
   const [matchedBrokers, setMatchedBrokers] = useState<MatchedBroker[] | null>(null);
   const [pendingPayload, setPendingPayload] = useState<LandlordDetailsPayload | null>(null);
@@ -247,12 +301,39 @@ export default function LandlordTitleSearchForm({
 
   const status = initialStatus ?? null;
 
+  // A landlord-authorisation requirement can be resumed after a page reload:
+  // the status endpoint flags it when the landlord's NIN was already
+  // verified for another broker.
+  const statusRequiresAuth = !!status?.needsLandlordAuthorization && !!status?.verificationId;
+
   // While the current submission is being reviewed the broker must not be able
   // to save or upload another title document. `submittedLocally` covers the
   // window between a successful submit and the refreshed status arriving.
+  // A pending landlord authorisation is an action the broker still has to
+  // take, so it must not lock the form.
+  const authRequired = !!landlordAuth || statusRequiresAuth;
+
   const underReview =
-    status?.status === 'pending' ||
-    (submittedLocally && status?.status !== 'approved' && status?.status !== 'rejected');
+    (status?.status === 'pending' && !authRequired) ||
+    (submittedLocally && status?.status !== 'approved' && status?.status !== 'rejected' && !authRequired);
+
+  useEffect(() => {
+    if (statusRequiresAuth && !landlordAuth) {
+      setLandlordAuth({
+        verificationId: status!.verificationId as string,
+        phoneMasked: status!.landlordPhoneMasked || '',
+      });
+      setAuthCollapsed(false);
+    }
+  }, [statusRequiresAuth, status?.verificationId, status?.landlordPhoneMasked, landlordAuth]);
+
+  useEffect(() => {
+    if (underReview || status?.status === 'approved') {
+      setAllSectionsOpen(false);
+    } else if (!status || status.status === 'rejected' || status.status === 'unsubmitted') {
+      setAllSectionsOpen(true);
+    }
+  }, [underReview, status?.status]);
 
   /* ------------------------- validation ------------------------- */
 
@@ -362,11 +443,33 @@ export default function LandlordTitleSearchForm({
 
       const res: any = await webApi.submitLandlordDetails(token, payload);
 
-      if (res?.needsBrokerConfirmation) {
+      if (res?.needsLandlordAuthorization) {
+        // The landlord's NIN is already verified for another broker: send an
+        // OTP to the landlord, then confirm the OTP plus the landlord's NIN.
+        setLandlordAuth({
+          verificationId: res.verificationId || '',
+          phoneMasked: res.landlordPhoneMasked || '',
+        });
+        setLandlordOtpSent(false);
+        setLandlordOtp('');
+        setLandlordNin('');
+        setAuthError('');
+        setAuthNotice('');
+        setAuthCollapsed(false);
+        setSubmitError('');
+        // Refresh the parent status so the requirement is persisted server-side
+        // and can be resumed after a page reload.
+        onSubmitted?.({ status: 'pending' });
+      } else if (res?.needsBrokerConfirmation) {
         // Landlord details match records submitted by other brokers.
         setPendingPayload(payload);
         setMatchedBrokers(res.matchedBrokers || []);
         setBrokerOtps({});
+      } else if (res?.success && res?.alreadyVerified) {
+        setSubmitSuccess(res.message || 'You are already verified for this landlord.');
+        setSubmittedLocally(true);
+        setAllSectionsOpen(false);
+        onSubmitted?.({ status: 'approved' });
       } else if (res?.success) {
         setSubmitSuccess(res.message || 'Landlord details submitted. Awaiting admin verification.');
         setSubmittedLocally(true);
@@ -450,6 +553,93 @@ export default function LandlordTitleSearchForm({
     }
   };
 
+  const handleSendLandlordOtp = async () => {
+    if (!landlordAuth) return;
+    setAuthBusy(true);
+    setAuthError('');
+    setAuthNotice('');
+    try {
+      const token = localStorage.getItem('zcanopy_token');
+      if (!token) throw new Error('Not authenticated');
+
+      const res: any = await webApi.sendLandlordAuthorizationOtp(token, {
+        verificationId: landlordAuth.verificationId,
+      });
+
+      if (res?.success) {
+        setLandlordOtpSent(true);
+        setAuthNotice(res.message || 'An authorisation OTP was sent to the landlord.');
+      } else {
+        setAuthError(res?.message || 'Failed to send the authorisation OTP.');
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Failed to send the authorisation OTP.');
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleVerifyLandlordAuthorization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!landlordAuth) return;
+
+    if (landlordOtp.trim().length !== 6) {
+      setAuthError('Enter the 6-digit OTP the landlord received.');
+      return;
+    }
+    if (!NIN_PATTERN.test(landlordNin)) {
+      setAuthError('Enter the landlord\'s valid 14-character Ugandan NIN (starting with CF or CM).');
+      return;
+    }
+
+    setAuthBusy(true);
+    setAuthError('');
+    try {
+      const token = localStorage.getItem('zcanopy_token');
+      if (!token) throw new Error('Not authenticated');
+
+      const res: any = await webApi.verifyLandlordAuthorization(token, {
+        verificationId: landlordAuth.verificationId,
+        otp: landlordOtp.trim(),
+        landlordNin,
+      });
+
+      if (res?.success) {
+        setSubmitSuccess(res.message || 'Landlord authorisation confirmed. You are now verified.');
+        setLandlordAuth(null);
+        setLandlordOtpSent(false);
+        setLandlordOtp('');
+        setLandlordNin('');
+        setAuthNotice('');
+        setAuthCollapsed(false);
+        setSubmittedLocally(true);
+        setAllSectionsOpen(false);
+        onSubmitted?.({ status: 'approved' });
+      } else {
+        setAuthError(res?.message || 'The landlord authorisation could not be verified.');
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'The landlord authorisation could not be verified.');
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const cancelLandlordAuth = () => {
+    setLandlordOtpSent(false);
+    setLandlordOtp('');
+    setLandlordNin('');
+    setAuthError('');
+    setAuthNotice('');
+    setAuthCollapsed(true);
+  };
+
+  const resumeLandlordAuth = () => {
+    setAuthCollapsed(false);
+    setAuthError('');
+    setAuthNotice('');
+  };
+
   /* ------------------------- derived UI state ------------------------- */
 
   const isMailo = tenureType === 'mailo';
@@ -471,12 +661,14 @@ export default function LandlordTitleSearchForm({
       return { cls: 'bg-yellow-100 text-yellow-700', icon: Clock, text: 'Under Review' };
     }
     if (status.status === 'approved') {
-      return { cls: 'bg-green-100 text-green-700', icon: CheckCircle, text: `Verified${status.instrumentNumber ? ` · ${status.instrumentNumber}` : ''}` };
+      return { cls: 'bg-green-100 text-green-700', icon: CheckCircle, text: 'Verified' };
     }
     return { cls: 'bg-red-100 text-red-600', icon: XCircle, text: 'Rejected' };
   }, [status]);
 
   const BadgeIcon = verifiedBadge.icon;
+
+  const sectionsCollapsible = underReview || status?.status === 'approved';
 
   const otpsSent = submitSuccess.includes('OTPs have been sent');
 
@@ -533,9 +725,7 @@ export default function LandlordTitleSearchForm({
           <div>
             <p className="font-medium text-green-800">Landlord &amp; Title Verified</p>
             <p className="text-sm text-green-600">
-              {status.instrumentNumber
-                ? `Instrument No. ${status.instrumentNumber} recorded. You may now withdraw your earnings.`
-                : 'Your details have been approved. You may now withdraw your earnings.'}
+              Your landlord &amp; title details have been approved. You may now withdraw your earnings.
             </p>
           </div>
         </div>
@@ -554,8 +744,148 @@ export default function LandlordTitleSearchForm({
         </div>
       ) : null}
 
-      {/* Cross-broker confirmation step */}
-      {matchedBrokers ? (
+      {/* Landlord authorisation step (landlord already verified for another broker) */}
+      {landlordAuth && authCollapsed ? (        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--zcanopy-accent-gold)]/40 bg-[var(--zcanopy-accent-gold)]/10 p-4">
+          <div className="flex items-start gap-3">
+            <Phone className="mt-0.5 h-5 w-5 shrink-0 text-[var(--zcanopy-primary)]" />
+            <div>
+              <p className="font-medium text-[var(--zcanopy-card-brown)]">
+                Landlord authorisation still required
+              </p>
+              <p className="text-sm text-[var(--zcanopy-muted)]">
+                Send an OTP to the landlord
+                {landlordAuth.phoneMasked ? ` (${landlordAuth.phoneMasked})` : ''} and confirm it with
+                the landlord&apos;s NIN to finish verification.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={resumeLandlordAuth}
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:opacity-90"
+            style={{ backgroundColor: 'var(--zcanopy-primary)' }}
+          >
+            Continue
+          </button>
+        </div>
+      ) : landlordAuth ? (
+        <form
+          onSubmit={handleVerifyLandlordAuthorization}
+          className="space-y-5 rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-4 shadow-[var(--zcanopy-shadow)] sm:p-6"
+        >
+          <div className="flex items-start gap-3 rounded-xl border border-[var(--zcanopy-accent-gold)]/40 bg-[var(--zcanopy-accent-gold)]/10 p-4">
+            <Phone className="mt-0.5 h-6 w-6 shrink-0 text-[var(--zcanopy-primary)]" />
+            <div className="space-y-2">
+              <p className="font-medium text-[var(--zcanopy-card-brown)]">
+                Landlord already verified by another broker
+              </p>
+              <p className="text-sm leading-relaxed text-[var(--zcanopy-muted)]">
+                The NIN you entered matches a landlord whose details have already been verified for another
+                broker. Send an authorisation OTP to the landlord
+                {landlordAuth.phoneMasked ? ` (${landlordAuth.phoneMasked})` : ''} to confirm they also
+                authorised you. The OTP and the landlord&apos;s NIN together identify the landlord&apos;s
+                consent — only the landlord can provide both.
+              </p>
+            </div>
+          </div>
+
+          {!landlordOtpSent ? (
+            <button
+              type="button"
+              onClick={handleSendLandlordOtp}
+              disabled={authBusy}
+              className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: 'var(--zcanopy-primary)' }}
+            >
+              {authBusy ? 'Sending OTP…' : 'Send OTP to the landlord'}
+            </button>
+          ) : (
+            <>
+              <div>
+                <FieldLabel htmlFor="landlord-authorization-otp" required>
+                  Landlord authorisation OTP
+                </FieldLabel>
+                <input
+                  id="landlord-authorization-otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="6-digit OTP"
+                  value={landlordOtp}
+                  onChange={(e) => setLandlordOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className={`${inputClass} text-center tracking-[0.3em]`}
+                />
+                <p className="mt-1 text-xs text-[var(--zcanopy-muted)]">
+                  Obtain the code sent by SMS to the landlord&apos;s phone number.
+                </p>
+              </div>
+
+              <div>
+                <FieldLabel
+                  htmlFor="landlord-authorization-nin"
+                  required
+                  tooltip="The landlord's own 14-character NIN as printed on their National ID. Together with the OTP sent to the landlord's phone, it confirms the landlord's identity and consent."
+                >
+                  Landlord&apos;s NIN
+                </FieldLabel>
+                <input
+                  id="landlord-authorization-nin"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={14}
+                  placeholder="CM84012100XXXX"
+                  value={landlordNin}
+                  onChange={(e) => setLandlordNin(formatNin(e.target.value))}
+                  className={`${inputClass} font-mono uppercase tracking-wide`}
+                />
+                <p className="mt-1 text-xs text-[var(--zcanopy-muted)]">
+                  Must match the NIN on the landlord&apos;s National ID. Only the landlord can confirm both
+                  this and the OTP.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authBusy}
+                className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: 'var(--zcanopy-primary)' }}
+              >
+                {authBusy ? 'Verifying…' : 'Verify & complete verification'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSendLandlordOtp}
+                disabled={authBusy}
+                className="w-full text-center text-xs font-semibold text-[var(--zcanopy-primary)] hover:underline disabled:opacity-50"
+              >
+                Resend the OTP to the landlord
+              </button>
+            </>
+          )}
+
+          {authError && (
+            <div role="alert" className="rounded-xl bg-red-50 p-3">
+              <ErrorText>{authError}</ErrorText>
+            </div>
+          )}
+          {authNotice && (
+            <div className="flex items-start gap-2 rounded-xl bg-green-50 p-3 text-sm text-green-700">
+              <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              {authNotice}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={cancelLandlordAuth}
+            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-[var(--zcanopy-muted)] transition-colors hover:border-gray-300 hover:text-[var(--zcanopy-card-brown)]"
+          >
+            Cancel
+          </button>
+        </form>
+      ) : matchedBrokers ? (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -651,6 +981,9 @@ export default function LandlordTitleSearchForm({
             title="Landlord Identity Details"
             subtitle="Exactly as they appear on the landlord's NIRA National ID."
             icon={UserRound}
+            collapsible={sectionsCollapsible}
+            open={openSections[1]}
+            onToggle={() => toggleSection(1)}
           >
             <div className="space-y-4">
               <div>
@@ -720,6 +1053,9 @@ export default function LandlordTitleSearchForm({
             title="Ministry & Tenure Selection"
             subtitle="Ministry Zonal Office handling the title and the land tenure system."
             icon={Landmark}
+            collapsible={sectionsCollapsible}
+            open={openSections[2]}
+            onToggle={() => toggleSection(2)}
           >
             <div className="space-y-5">
               <div>
@@ -783,6 +1119,9 @@ export default function LandlordTitleSearchForm({
             title="Property Location on Title"
             subtitle="Fields adapt to the selected tenure type."
             icon={MapPin}
+            collapsible={sectionsCollapsible}
+            open={openSections[3]}
+            onToggle={() => toggleSection(3)}
           >
             <div className="space-y-4">
               {isMailo && (
