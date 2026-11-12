@@ -7,7 +7,7 @@ import { webApi, uploadToSpaces } from '@/lib/api';
 import { createVideoPoster } from '@/lib/mediaOptimization';
 import { toCdnUrl } from '@/lib/mediaUrl';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
-import { X } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 import { useBrokerProperties, useBrokerSubscriptionDetails, revalidateProperties } from '@/lib/swr';
 
@@ -154,6 +154,16 @@ export default function BrokerPropertiesPage() {
   const [uploadDialog, setUploadDialog] = useState<{ type: 'error'; message: string } | null>(null);
   const [priceError, setPriceError] = useState('');
   const [feeError, setFeeError] = useState('');
+  // When the broker types the location manually we make them state explicitly
+  // whether they are standing at the property. The answer decides what is
+  // saved: "yes" attaches the property's coordinates, "no" saves the location
+  // name only. It has no default, so it must be answered before submitting.
+  const [atPropertyLocation, setAtPropertyLocation] = useState<'yes' | 'no' | ''>('');
+  const [locationError, setLocationError] = useState('');
+
+  // Coordinates are only used when the broker is at the property (GPS mode
+  // always is) or when they confirmed they are there during manual entry.
+  const useCoordinates = !locationEditable || atPropertyLocation === 'yes';
 
   const validatePriceAndFee = (price: string, fee: string) => {
     const priceNum = Number(price);
@@ -227,6 +237,28 @@ export default function BrokerPropertiesPage() {
       }
     } catch {
       // ignore reverse geocode failure
+    }
+  };
+
+  /**
+   * Turns a hand-typed location into coordinates. Used when the broker
+   * confirms they are at the property but typed the address instead of picking
+   * one of the suggestions (which already carry coordinates).
+   */
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    if (!address.trim() || !window.google?.maps) return null;
+    try {
+      const geocoder = new window.google.maps.Geocoder();
+      const result = await new Promise<any>((resolve) => {
+        geocoder.geocode({ address }, (results: any, status: any) => {
+          resolve(status === 'OK' && results?.[0] ? results[0] : undefined);
+        });
+      });
+      const location = result?.geometry?.location;
+      if (!location) return null;
+      return { lat: location.lat(), lng: location.lng() };
+    } catch {
+      return null;
     }
   };
 
@@ -412,6 +444,43 @@ export default function BrokerPropertiesPage() {
       return;
     }
 
+    // A manually entered location needs an explicit answer about whether the
+    // broker is on site; without it we cannot know whether to save coordinates
+    // or just the location name.
+    setLocationError('');
+    if (!createForm.location.trim()) {
+      setLocationError('Enter the property location before submitting.');
+      return;
+    }
+    if (locationEditable && !atPropertyLocation) {
+      setLocationError('You must confirm whether you are at the property location before submitting.');
+      return;
+    }
+
+    let submitLat = lat;
+    let submitLng = lng;
+    if (locationEditable) {
+      if (atPropertyLocation === 'yes' && (submitLat === 0 || submitLng === 0)) {
+        // Typed address with no coordinates yet — resolve them now so the
+        // property is still mapped.
+        const resolved = await geocodeAddress(createForm.location);
+        if (!resolved) {
+          setLocationError(
+            "We couldn't find coordinates for that location. Pick a suggestion from the list, or choose \"No\" to save the location name only.",
+          );
+          return;
+        }
+        submitLat = resolved.lat;
+        submitLng = resolved.lng;
+        setLat(resolved.lat);
+        setLng(resolved.lng);
+      }
+      if (atPropertyLocation === 'no') {
+        submitLat = 0;
+        submitLng = 0;
+      }
+    }
+
     setCreating(true);
     try {
       await webApi.createProperty(token, {
@@ -424,14 +493,16 @@ export default function BrokerPropertiesPage() {
         brokersUniqueCode: 'BRK-WEB-1',
         imageUrl: photos,
         videoUrl: video ? [video] : [],
-        lat,
-        lng,
+        lat: submitLat,
+        lng: submitLng,
       });
       setShowCreate(false);
       setCreateForm({ title: '', description: '', propertyCategory: '', propertyType: '', location: '', price: '', brokerBookingFee: '' });
       setPriceError('');
       setFeeError('');
       setLocationEditable(false);
+      setAtPropertyLocation('');
+      setLocationError('');
       setPhotos([]);
       setVideo(null);
       setVideoPoster(null);
@@ -518,25 +589,119 @@ export default function BrokerPropertiesPage() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">Enter location manually?</label>
-              <input
-                type="checkbox"
-                checked={locationEditable}
-                onChange={(e) => setLocationEditable(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[var(--zcanopy-primary)] focus:ring-[var(--zcanopy-primary)]"
-              />
-            </div>
-            {locationEditable ? (
-              <p className="text-xs text-gray-500">
-                You are not currently at the property location? Fill the location field manually instead of using GPS.
-              </p>
-            ) : (
-              lat !== 0 && lng !== 0 && (
-                <p className="text-xs text-gray-500">
-                  Location detected from your current position (lat: {lat.toFixed(5)}, lng: {lng.toFixed(5)})
+            <div
+              className={`rounded-2xl border-2 p-4 transition-colors ${
+                locationEditable
+                  ? 'border-[var(--zcanopy-border)] bg-white/50'
+                  : 'border-[var(--zcanopy-primary)] bg-[color-mix(in_srgb,var(--zcanopy-accent-gold)_10%,transparent)]'
+              }`}
+            >
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={locationEditable}
+                  onChange={(e) => {
+                    setLocationEditable(e.target.checked);
+                    // The confirmation is about manual entry only, so a fresh
+                    // answer is required each time manual entry is turned on.
+                    setAtPropertyLocation('');
+                    setLocationError('');
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-[var(--zcanopy-primary)] focus:ring-[var(--zcanopy-primary)]"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-[var(--zcanopy-card-brown)]">
+                    I want to type the location manually instead of using GPS
+                  </span>
+                  <span className="mt-0.5 block text-xs text-[var(--zcanopy-muted)]">
+                    Leave this unticked if you are standing at the property — your current GPS position is used as its coordinates.
+                  </span>
+                </span>
+              </label>
+
+              {!locationEditable && lat !== 0 && lng !== 0 && (
+                <p className="mt-3 text-xs text-gray-600">
+                  Coordinates taken from your current position (lat: {lat.toFixed(5)}, lng: {lng.toFixed(5)}).
                 </p>
-              )
+              )}
+              {!locationEditable && (lat === 0 || lng === 0) && (
+                <p className="mt-3 rounded-xl border border-amber-400 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                  We could not read your GPS position. Allow location access and reload, or tick the box above to type the location instead.
+                </p>
+              )}
+            </div>
+
+            {locationEditable && (
+              <div
+                className={`rounded-2xl border-2 p-4 ${
+                  locationError
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-[var(--zcanopy-primary)] bg-[color-mix(in_srgb,var(--zcanopy-accent-gold)_12%,transparent)]'
+                }`}
+              >
+                <p className="flex items-start gap-2 text-sm font-bold text-[var(--zcanopy-card-brown)]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--zcanopy-primary)]" />
+                  <span>
+                    You must confirm: are you at the property location? <span className="text-red-600">*</span>
+                  </span>
+                </p>
+                <p className="mt-1 pl-6 text-xs text-[var(--zcanopy-muted)]">
+                  This cannot be skipped — the property will not submit until you answer. It decides what is saved with the listing.
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label
+                    className={`flex cursor-pointer items-start gap-2 rounded-xl border-2 p-3 transition-colors ${
+                      atPropertyLocation === 'yes'
+                        ? 'border-[var(--zcanopy-primary)] bg-white shadow-sm'
+                        : 'border-[var(--zcanopy-border)] bg-white/50 hover:border-[var(--zcanopy-primary)]/60'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="at-property-location"
+                      value="yes"
+                      checked={atPropertyLocation === 'yes'}
+                      onChange={() => {
+                        setAtPropertyLocation('yes');
+                        setLocationError('');
+                      }}
+                      className="mt-0.5 h-4 w-4 accent-[var(--zcanopy-primary)]"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-[var(--zcanopy-card-brown)]">Yes — I am at the property</span>
+                      <span className="mt-0.5 block text-xs text-gray-600">
+                        The coordinates of this location are saved and used for maps and nearby search.
+                      </span>
+                    </span>
+                  </label>
+                  <label
+                    className={`flex cursor-pointer items-start gap-2 rounded-xl border-2 p-3 transition-colors ${
+                      atPropertyLocation === 'no'
+                        ? 'border-[var(--zcanopy-primary)] bg-white shadow-sm'
+                        : 'border-[var(--zcanopy-border)] bg-white/50 hover:border-[var(--zcanopy-primary)]/60'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="at-property-location"
+                      value="no"
+                      checked={atPropertyLocation === 'no'}
+                      onChange={() => {
+                        setAtPropertyLocation('no');
+                        setLocationError('');
+                      }}
+                      className="mt-0.5 h-4 w-4 accent-[var(--zcanopy-primary)]"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-[var(--zcanopy-card-brown)]">No — I am not there</span>
+                      <span className="mt-0.5 block text-xs text-gray-600">
+                        Only the location name is saved. No coordinates are attached to the listing.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+                {locationError && <p className="mt-2 text-xs font-semibold text-red-600">{locationError}</p>}
+              </div>
             )}
             <div className="relative">
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Location</label>
@@ -574,37 +739,28 @@ export default function BrokerPropertiesPage() {
                         {suggestion.description}
                       </button>
                     ))
-      )}
-
-      {uploadDialog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
-                <X className="h-5 w-5" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-800">Upload Limit Reached</h3>
-            </div>
-            <p className="text-sm text-gray-600">{uploadDialog.message}</p>
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setUploadDialog(null)}
-                className="rounded-xl bg-[var(--zcanopy-primary)] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[var(--zcanopy-primary-alt)]"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  )}
                 </div>
               )}
             </div>
-            {!locationEditable && lat !== 0 && lng !== 0 && (
+            {!locationEditable && locationError && (
+              <p className="text-xs font-semibold text-red-600">{locationError}</p>
+            )}
+            {useCoordinates && lat !== 0 && lng !== 0 && (
               <div className="flex items-center gap-2 rounded-xl border border-[var(--zcanopy-border)] bg-gray-50 p-3">
                 <span className="text-xs text-gray-500">Coordinates:</span>
                 <span className="text-xs font-medium text-gray-700">{lat.toFixed(6)}, {lng.toFixed(6)}</span>
               </div>
+            )}
+            {locationEditable && atPropertyLocation === 'yes' && (lat === 0 || lng === 0) && (
+              <p className="text-xs text-gray-500">
+                Coordinates for this location will be looked up from the address when you submit.
+              </p>
+            )}
+            {locationEditable && atPropertyLocation === 'no' && (
+              <p className="text-xs text-gray-500">
+                Only the location name will be saved — no coordinates will be attached to this property.
+              </p>
             )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Price (UGX)</label>
@@ -737,6 +893,28 @@ export default function BrokerPropertiesPage() {
             </button>
           </form>
         </Panel>
+      )}
+
+      {uploadDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <X className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">Upload Limit Reached</h3>
+            </div>
+            <p className="text-sm text-gray-600">{uploadDialog.message}</p>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setUploadDialog(null)}
+                className="rounded-xl bg-[var(--zcanopy-primary)] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[var(--zcanopy-primary-alt)]"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
