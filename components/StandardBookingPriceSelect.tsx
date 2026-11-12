@@ -36,8 +36,8 @@ export default function StandardBookingPriceSelect({
   const currentIsStandard = STANDARD_BOOKING_FEE_BANDS.some((b) => b.fee === currentFee);
 
   return (
-    <div className="mt-3 rounded-xl border border-dashed border-[var(--zcanopy-border)] bg-white/50 p-3">
-      <label htmlFor={id} className="mb-1.5 block text-xs font-medium text-gray-600">
+    <div className="mt-3 rounded-xl border border-dashed border-[var(--zcanopy-border)] bg-[color-mix(in_srgb,var(--zcanopy-accent-gold)_8%,var(--zcanopy-surface))] p-3">
+      <label htmlFor={id} className="mb-1.5 block text-xs font-medium text-[var(--zcanopy-card-brown)]">
         Standard booking price for this property price
       </label>
 
@@ -50,7 +50,7 @@ export default function StandardBookingPriceSelect({
               if (e.target.value) onSelectFee(e.target.value);
             }}
             disabled={disabled}
-            className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-white/70 px-4 py-2.5 text-sm shadow-sm disabled:opacity-50"
+            className="w-full rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] px-4 py-2.5 text-sm text-[var(--zcanopy-card-brown)] shadow-sm disabled:opacity-50"
           >
             <option value="">Use UGX {formatUgx(band.fee)}</option>
             {STANDARD_BOOKING_FEE_BANDS.map((b) => (
@@ -60,13 +60,13 @@ export default function StandardBookingPriceSelect({
               </option>
             ))}
           </select>
-          <p className="mt-1 text-[11px] text-gray-500">
+          <p className="mt-1 text-[11px] text-[var(--zcanopy-text-secondary)]">
             Standard for properties {formatPriceBound(band.minPrice)} –{" "}
             {formatPriceBound(band.maxPrice)}. You can still use any other amount.
           </p>
         </>
       ) : (
-        <p className="text-[11px] text-gray-500">
+        <p className="text-[11px] text-[var(--zcanopy-text-secondary)]">
           {price
             ? "No standard booking price is set for this property price. You can use any amount."
             : "Enter the property price to see the standard booking price for its range."}

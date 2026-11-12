@@ -222,6 +222,39 @@ p.text-gray-500,
   color: var(--zcanopy-muted);
 }
 
+/* Dark theme: swap the hard-coded light greys and whites for theme tokens, so
+   panels, cards, borders and labels follow the theme instead of staying
+   light. Inputs keep their own darker surface (see the html.dark input rule
+   above), and the white overlays that sit on top of images (bg-white/90) are
+   left alone on purpose. */
+html.dark .text-gray-700,
+html.dark .text-gray-800 {
+  color: var(--zcanopy-card-brown);
+}
+
+html.dark .bg-white:not(input):not(textarea):not(select) {
+  background-color: var(--zcanopy-surface);
+}
+
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-300 {
+  border-color: var(--zcanopy-border);
+}
+
+html.dark .bg-gray-50 {
+  background-color: var(--zcanopy-surface);
+}
+
+html.dark .bg-gray-100 {
+  background-color: var(--zcanopy-table-head);
+}
+
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-100:hover {
+  background-color: var(--zcanopy-table-head);
+}
+
 .zc-table-wrap {
   overflow: hidden;
   border-radius: 1rem;
