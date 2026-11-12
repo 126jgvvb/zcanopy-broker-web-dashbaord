@@ -20,6 +20,13 @@
   --zcanopy-shadow: 0 1px 2px rgba(44, 33, 28, 0.04), 0 12px 32px -16px rgba(44, 33, 28, 0.18);
   --zcanopy-shadow-hover: 0 8px 28px -12px rgba(93, 64, 55, 0.28);
   --zcanopy-table-head: #ece4d6;
+  --zcanopy-danger: #b91c1c;
+  --zcanopy-danger-soft: rgba(220, 38, 38, 0.08);
+  --zcanopy-warning: #92400e;
+  --zcanopy-warning-soft: rgba(245, 158, 11, 0.12);
+  /* Secondary body text. A touch stronger than --zcanopy-muted so it stays
+     readable on the tinted cards, in both themes. */
+  --zcanopy-text-secondary: color-mix(in srgb, var(--zcanopy-muted) 80%, var(--zcanopy-card-brown));
   --font-cormorant: "Cormorant Garamond", Georgia, serif;
 }
 
@@ -48,6 +55,10 @@ html.dark {
   --zcanopy-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px -20px rgba(0, 0, 0, 0.55);
   --zcanopy-shadow-hover: 0 12px 32px -12px rgba(0, 0, 0, 0.55);
   --zcanopy-table-head: #2a241e;
+  --zcanopy-danger: #fca5a5;
+  --zcanopy-danger-soft: rgba(248, 113, 113, 0.14);
+  --zcanopy-warning: #fcd34d;
+  --zcanopy-warning-soft: rgba(245, 158, 11, 0.16);
 }
 
 html.dark aside {

@@ -557,7 +557,7 @@ export default function BrokerPropertiesPage() {
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Title</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Title</label>
                 <input
                   type="text"
                   value={createForm.title}
@@ -567,7 +567,7 @@ export default function BrokerPropertiesPage() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Property Category</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Property Category</label>
                 <select
                   value={createForm.propertyCategory}
                   onChange={(e) => setCreateForm((prev) => ({ ...prev, propertyCategory: e.target.value, propertyType: '' }))}
@@ -584,7 +584,7 @@ export default function BrokerPropertiesPage() {
               </div>
               {createForm.propertyCategory && (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">Property Type <span className="text-red-500">*</span></label>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Property Type <span className="text-red-500">*</span></label>
                   <select
                     value={createForm.propertyType}
                     onChange={(e) => setCreateForm((prev) => ({ ...prev, propertyType: e.target.value }))}
@@ -605,25 +605,25 @@ export default function BrokerPropertiesPage() {
             <div
               className={`rounded-2xl border-2 p-4 ${
                 locationError
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-[var(--zcanopy-primary)] bg-[color-mix(in_srgb,var(--zcanopy-accent-gold)_12%,transparent)]'
+                  ? 'border-[var(--zcanopy-danger)] bg-[var(--zcanopy-danger-soft)]'
+                  : 'border-[var(--zcanopy-primary)] bg-[color-mix(in_srgb,var(--zcanopy-accent-gold)_12%,var(--zcanopy-surface))]'
               }`}
             >
               <p className="flex items-start gap-2 text-sm font-bold text-[var(--zcanopy-card-brown)]">
                 <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--zcanopy-primary)]" />
                 <span>
-                  You must confirm: are you at the property location? <span className="text-red-600">*</span>
+                  You must confirm: are you at the property location? <span className="text-[var(--zcanopy-danger)]">*</span>
                 </span>
               </p>
-              <p className="mt-1 pl-6 text-xs text-[var(--zcanopy-muted)]">
+              <p className="mt-1 pl-6 text-xs text-[var(--zcanopy-text-secondary)]">
                 This cannot be skipped — the property will not submit until you answer. It decides what is saved with the listing.
               </p>
               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <label
                   className={`flex cursor-pointer items-start gap-2 rounded-xl border-2 p-3 transition-colors ${
                     atPropertyLocation === 'yes'
-                      ? 'border-[var(--zcanopy-primary)] bg-white shadow-sm'
-                      : 'border-[var(--zcanopy-border)] bg-white/50 hover:border-[var(--zcanopy-primary)]/60'
+                      ? 'border-[var(--zcanopy-primary)] bg-[color-mix(in_srgb,var(--zcanopy-primary)_10%,var(--zcanopy-surface))] shadow-[var(--zcanopy-shadow)]'
+                      : 'border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] hover:border-[var(--zcanopy-primary)]/60'
                   }`}
                 >
                   <input
@@ -639,7 +639,7 @@ export default function BrokerPropertiesPage() {
                   />
                   <span>
                     <span className="block text-sm font-semibold text-[var(--zcanopy-card-brown)]">Yes — I am at the property</span>
-                    <span className="mt-0.5 block text-xs text-gray-600">
+                    <span className="mt-0.5 block text-xs text-[var(--zcanopy-text-secondary)]">
                       The location is captured from your current position and its coordinates are saved for maps and nearby search.
                     </span>
                   </span>
@@ -647,8 +647,8 @@ export default function BrokerPropertiesPage() {
                 <label
                   className={`flex cursor-pointer items-start gap-2 rounded-xl border-2 p-3 transition-colors ${
                     atPropertyLocation === 'no'
-                      ? 'border-[var(--zcanopy-primary)] bg-white shadow-sm'
-                      : 'border-[var(--zcanopy-border)] bg-white/50 hover:border-[var(--zcanopy-primary)]/60'
+                      ? 'border-[var(--zcanopy-primary)] bg-[color-mix(in_srgb,var(--zcanopy-primary)_10%,var(--zcanopy-surface))] shadow-[var(--zcanopy-shadow)]'
+                      : 'border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] hover:border-[var(--zcanopy-primary)]/60'
                   }`}
                 >
                   <input
@@ -669,16 +669,16 @@ export default function BrokerPropertiesPage() {
                   />
                   <span>
                     <span className="block text-sm font-semibold text-[var(--zcanopy-card-brown)]">No — I am not there</span>
-                    <span className="mt-0.5 block text-xs text-gray-600">
+                    <span className="mt-0.5 block text-xs text-[var(--zcanopy-text-secondary)]">
                       Type the location below. Only the location name is saved — no coordinates are attached to the listing.
                     </span>
                   </span>
                 </label>
               </div>
-              {locationError && <p className="mt-2 text-xs font-semibold text-red-600">{locationError}</p>}
+              {locationError && <p className="mt-2 text-xs font-semibold text-[var(--zcanopy-danger)]">{locationError}</p>}
             </div>
             <div className="relative">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Location</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Location</label>
               <input
                 ref={locationInputRef}
                 type="text"
@@ -701,7 +701,7 @@ export default function BrokerPropertiesPage() {
                 autoComplete="off"
               />
               {showLocationDropdown && (
-                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[var(--zcanopy-border)] bg-white shadow-lg">
+                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] shadow-lg">
                   {locationLoading ? (
                     <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
                   ) : locationSuggestions.length === 0 ? (
@@ -713,7 +713,7 @@ export default function BrokerPropertiesPage() {
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleLocationSelect(suggestion.description, suggestion.placeId)}
-                        className="w-full break-words px-4 py-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 first:rounded-t-xl last:rounded-b-xl"
+                        className="w-full break-words px-4 py-3 text-left text-sm text-[var(--zcanopy-card-brown)] transition-colors hover:bg-[var(--zcanopy-table-head)] first:rounded-t-xl last:rounded-b-xl"
                       >
                         {suggestion.description}
                       </button>
@@ -723,25 +723,25 @@ export default function BrokerPropertiesPage() {
               )}
             </div>
             {resolvedCoords && (
-              <div className="flex items-center gap-2 rounded-xl border border-[var(--zcanopy-border)] bg-gray-50 p-3">
-                <span className="text-xs text-gray-500">Coordinates:</span>
-                <span className="text-xs font-medium text-gray-700">
+              <div className="flex items-center gap-2 rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-table-head)] p-3">
+                <span className="text-xs text-[var(--zcanopy-muted)]">Coordinates:</span>
+                <span className="text-xs font-medium text-[var(--zcanopy-card-brown)]">
                   {resolvedCoords.lat.toFixed(6)}, {resolvedCoords.lng.toFixed(6)}
                 </span>
               </div>
             )}
             {atPropertyLocation === 'yes' && !resolvedCoords && (
-              <p className="rounded-xl border border-amber-400 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+              <p className="rounded-xl border border-[var(--zcanopy-warning)] bg-[var(--zcanopy-warning-soft)] px-3 py-2 text-xs font-medium text-[var(--zcanopy-warning)]">
                 We could not read your GPS position. Allow location access, or pick the location from the list below — the coordinates will be looked up from the address when you submit.
               </p>
             )}
             {atPropertyLocation === 'no' && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--zcanopy-muted)]">
                 Only the location name will be saved — no coordinates will be attached to this property.
               </p>
             )}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Price (UGX)</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Price (UGX)</label>
               <input
                 type="number"
                 value={createForm.price}
@@ -755,7 +755,7 @@ export default function BrokerPropertiesPage() {
               {priceError && <p className="mt-1 text-xs text-red-500">{priceError}</p>}
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Broker Booking Fee (UGX)</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Broker Booking Fee (UGX)</label>
               <input
                 type="number"
                 value={createForm.brokerBookingFee}
@@ -779,7 +779,7 @@ export default function BrokerPropertiesPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Description</label>
               <textarea
                 value={createForm.description}
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
@@ -789,7 +789,7 @@ export default function BrokerPropertiesPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Photos ({photos.length}/{tier.limits.maxPhotosPerProperty})</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Photos ({photos.length}/{tier.limits.maxPhotosPerProperty})</label>
               <input
                 type="file"
                 accept="image/*"
@@ -823,7 +823,7 @@ export default function BrokerPropertiesPage() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Video ({video ? '1' : '0'}/{tier.limits.maxVideosPerProperty})</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--zcanopy-card-brown)]">Video ({video ? '1' : '0'}/{tier.limits.maxVideosPerProperty})</label>
               <input
                 type="file"
                 accept="video/*"
@@ -875,12 +875,12 @@ export default function BrokerPropertiesPage() {
 
       {uploadDialog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-xl">
             <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--zcanopy-danger-soft)] text-[var(--zcanopy-danger)]">
                 <X className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-800">Upload Limit Reached</h3>
+              <h3 className="text-lg font-bold text-[var(--zcanopy-card-brown)]">Upload Limit Reached</h3>
             </div>
             <p className="text-sm text-gray-600">{uploadDialog.message}</p>
             <div className="mt-6 flex justify-end">
