@@ -444,8 +444,10 @@ export default function LandlordTitleSearchForm({
       const res: any = await webApi.submitLandlordDetails(token, payload);
 
       if (res?.needsLandlordAuthorization) {
-        // The landlord's NIN is already verified for another broker: send an
-        // OTP to the landlord, then confirm the OTP plus the landlord's NIN.
+        // The landlord's NIN is already verified for another broker. Offer the
+        // landlord OTP + NIN path (authorise directly with the landlord) and,
+        // when the server also returned matched brokers, the cross-broker OTP
+        // confirmation component as an alternative.
         setLandlordAuth({
           verificationId: res.verificationId || '',
           phoneMasked: res.landlordPhoneMasked || '',
@@ -457,6 +459,11 @@ export default function LandlordTitleSearchForm({
         setAuthNotice('');
         setAuthCollapsed(false);
         setSubmitError('');
+        if (res.matchedBrokers?.length) {
+          setPendingPayload(payload);
+          setMatchedBrokers(res.matchedBrokers);
+          setBrokerOtps({});
+        }
         // Refresh the parent status so the requirement is persisted server-side
         // and can be resumed after a page reload.
         onSubmitted?.({ status: 'pending' });
@@ -540,6 +547,10 @@ export default function LandlordTitleSearchForm({
         setMatchedBrokers(null);
         setPendingPayload(null);
         setBrokerOtps({});
+        setLandlordAuth(null);
+        setLandlordOtpSent(false);
+        setLandlordOtp('');
+        setLandlordNin('');
         setSubmitSuccess(res.message || 'Landlord details confirmed and submitted. Awaiting admin verification.');
         setSubmittedLocally(true);
         onSubmitted?.({ status: 'pending' });
@@ -612,6 +623,11 @@ export default function LandlordTitleSearchForm({
         setLandlordNin('');
         setAuthNotice('');
         setAuthCollapsed(false);
+        // Clear the cross-broker alternative state so only the approved state
+        // remains visible.
+        setMatchedBrokers(null);
+        setPendingPayload(null);
+        setBrokerOtps({});
         setSubmittedLocally(true);
         setAllSectionsOpen(false);
         onSubmitted?.({ status: 'approved' });
@@ -744,8 +760,9 @@ export default function LandlordTitleSearchForm({
         </div>
       ) : null}
 
-      {/* Landlord authorisation step (landlord already verified for another broker) */}
-      {landlordAuth && authCollapsed ? (        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--zcanopy-accent-gold)]/40 bg-[var(--zcanopy-accent-gold)]/10 p-4">
+      {/* Landlord authorisation step — collapsed banner (shown alone when no matched brokers) */}
+      {landlordAuth && authCollapsed && !matchedBrokers && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--zcanopy-accent-gold)]/40 bg-[var(--zcanopy-accent-gold)]/10 p-4">
           <div className="flex items-start gap-3">
             <Phone className="mt-0.5 h-5 w-5 shrink-0 text-[var(--zcanopy-primary)]" />
             <div>
@@ -768,7 +785,37 @@ export default function LandlordTitleSearchForm({
             Continue
           </button>
         </div>
-      ) : landlordAuth ? (
+      )}
+
+      {/* Active authorisation requirement — cross-broker OTPs and landlord OTP+NIN as alternatives */}
+      {landlordAuth || matchedBrokers ? (
+        <>
+          {landlordAuth && authCollapsed && matchedBrokers && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--zcanopy-accent-gold)]/40 bg-[var(--zcanopy-accent-gold)]/10 p-4">
+              <div className="flex items-start gap-3">
+                <Phone className="mt-0.5 h-5 w-5 shrink-0 text-[var(--zcanopy-primary)]" />
+                <div>
+                  <p className="font-medium text-[var(--zcanopy-card-brown)]">
+                    Landlord authorisation still required
+                  </p>
+                  <p className="text-sm text-[var(--zcanopy-muted)]">
+                    Send an OTP to the landlord
+                    {landlordAuth.phoneMasked ? ` (${landlordAuth.phoneMasked})` : ''} and confirm it with
+                    the landlord&apos;s NIN to finish verification.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={resumeLandlordAuth}
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:opacity-90"
+                style={{ backgroundColor: 'var(--zcanopy-primary)' }}
+              >
+                Continue
+              </button>
+            </div>
+          )}
+          {landlordAuth && !authCollapsed && (
         <form
           onSubmit={handleVerifyLandlordAuthorization}
           className="space-y-5 rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-4 shadow-[var(--zcanopy-shadow)] sm:p-6"
@@ -885,7 +932,8 @@ export default function LandlordTitleSearchForm({
             Cancel
           </button>
         </form>
-      ) : matchedBrokers ? (
+          )}
+          {matchedBrokers && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -973,6 +1021,8 @@ export default function LandlordTitleSearchForm({
           {submitError && <ErrorText>{submitError}</ErrorText>}
           {submitSuccess && <p className="text-xs font-medium text-green-600">{submitSuccess}</p>}
         </form>
+          )}
+        </>
       ) : (
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* SECTION 1 — Landlord identity */}
