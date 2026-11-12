@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import { webApi, type LandlordVerificationStatus } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { COLORS } from '@/lib/theme';
-import LandlordTitleSearchForm from '@/components/LandlordTitleSearchForm';
+import dynamic from 'next/dynamic';
+
+// Loaded on demand: the form is only needed by brokers who are verifying
+// landlord & title documents, and it is the heaviest component in the console.
+const LandlordTitleSearchForm = dynamic(
+  () => import('@/components/LandlordTitleSearchForm'),
+  { ssr: false, loading: () => <p className="text-sm text-gray-500">Loading the verification form...</p> },
+);
 import { AlertTriangle, CheckCircle, KeyRound } from 'lucide-react';
 
 interface WalletTransaction {

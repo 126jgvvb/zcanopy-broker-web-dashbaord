@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropertyCard from '@/components/PropertyCard';
 import StandardBookingPriceSelect from '@/components/StandardBookingPriceSelect';
 import { webApi, uploadToSpaces } from '@/lib/api';
-import { createVideoPoster } from '@/lib/mediaOptimization';
+
 import { toCdnUrl } from '@/lib/mediaUrl';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { AlertTriangle, X } from 'lucide-react';
@@ -90,9 +90,15 @@ const PROPERTY_TYPES = [
 export default function BrokerPropertiesPage() {
   const [mapsReady, setMapsReady] = useState(false);
 
-  useEffect(() => {
+  /**
+   * Loads the Google Maps script (with the Places library) on demand. It is
+   * only needed once the broker touches the location field or asks for their
+   * GPS position, so it no longer sits in the initial page payload.
+   */
+  const loadMaps = useCallback(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') return;
+    if (mapsReady) return;
 
     const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     if (existing) {
@@ -111,7 +117,7 @@ export default function BrokerPropertiesPage() {
     script.defer = true;
     script.addEventListener('load', () => setMapsReady(true));
     document.head.appendChild(script);
-  }, []);
+  }, [mapsReady]);
 
   const propertiesQuery = useBrokerProperties();
   const subscriptionQuery = useBrokerSubscriptionDetails();
@@ -198,6 +204,7 @@ export default function BrokerPropertiesPage() {
   // are standing at the property — that is the only case where coordinates are
   // saved with the listing.
   useEffect(() => {
+    if (atPropertyLocation === 'yes') loadMaps();
     if (atPropertyLocation !== 'yes') {
       if (atPropertyLocation === 'no') {
         setGpsLat(0);
@@ -226,7 +233,7 @@ export default function BrokerPropertiesPage() {
     return () => {
       cancelled = true;
     };
-  }, [atPropertyLocation]);
+  }, [atPropertyLocation, loadMaps]);
 
   const reverseGeocode = async (latitude: number, longitude: number) => {
     if (!window.google?.maps) return;
@@ -434,7 +441,10 @@ export default function BrokerPropertiesPage() {
     setVideoUploading(true);
     // Start poster extraction immediately, but never let it delay the video
     // preview: the upload result is shown as soon as it lands.
-    const posterPromise = createVideoPoster(file);
+    // The poster encoder is only needed while uploading a video.
+    const posterPromise = import('@/lib/mediaOptimization')
+      .then((m) => m.createVideoPoster(file))
+      .catch(() => null);
     try {
       const url = await uploadToSpaces(file, 'properties');
       setVideo(url);
@@ -685,6 +695,7 @@ export default function BrokerPropertiesPage() {
                   setCreateForm({ ...createForm, location: e.target.value });
                 }}
                 onFocus={() => {
+                  loadMaps();
                   if (createForm.location.trim().length >= 2) {
                     setShowLocationDropdown(true);
                   }

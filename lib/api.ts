@@ -1,6 +1,4 @@
-import { mockData } from './mockData';
 import { decryptResponse } from './crypto';
-import { optimizeImageFile } from './mediaOptimization';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
 
@@ -130,6 +128,7 @@ export async function uploadToSpaces(file: File, folder = 'properties'): Promise
   // Compress/resize phone captures (and convert to WebP) before they leave the
   // device. Videos pass through unchanged; their poster frame is generated
   // separately for previews.
+  const { optimizeImageFile } = await import('./mediaOptimization');
   const uploadFile = await optimizeImageFile(file);
   const isVideo = isVideoUpload(file);
 
@@ -292,6 +291,15 @@ function mockFallbackAllowed(): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
+/**
+ * The mock catalogue is a development convenience only, so it is loaded on
+ * demand: it never reaches the production bundle.
+ */
+async function mockCatalogue() {
+  const { mockData } = await import('./mockData');
+  return mockData;
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   { method = 'GET', body, token, sessionId, query, fallback, skipSessionHeader }: RequestOptions = {},
@@ -384,23 +392,35 @@ export const webApi = {
   brokerSetup: (body: unknown) =>
     apiFetch('/web/auth/broker/setup', { method: 'POST', body}),
 
-  publicProperties: (query?: Record<string, string | number | boolean | undefined>) =>
-    apiFetch<{ properties: any[]; total: number }>('/web/public/properties', { query, fallback: mockData.properties() }),
+  publicProperties: async (query?: Record<string, string | number | boolean | undefined>) => {
+    const mockData = await mockCatalogue();
+    return apiFetch<{ properties: any[]; total: number }>('/web/public/properties', { query, fallback: mockData.properties() });
+  },
 
-  featuredProperties: (limit = 6) =>
-    apiFetch<{ properties: any[]; total: number }>('/web/public/properties/featured', { query: { limit }, fallback: mockData.properties() }),
+  featuredProperties: async (limit = 6) => {
+    const mockData = await mockCatalogue();
+    return apiFetch<{ properties: any[]; total: number }>('/web/public/properties/featured', { query: { limit }, fallback: mockData.properties() });
+  },
 
-  propertyDetails: (id: string) =>
-    apiFetch<{ property: any }>(`/web/public/properties/${id}`, { fallback: mockData.propertyDetails(id) }),
+  propertyDetails: async (id: string) => {
+    const mockData = await mockCatalogue();
+    return apiFetch<{ property: any }>(`/web/public/properties/${id}`, { fallback: mockData.propertyDetails(id) });
+  },
 
-  searchProperties: (q: string, options?: Record<string, string | number | boolean | undefined>) =>
-    apiFetch<{ properties: any[]; total: number }>('/web/public/search', { query: { q, ...options }, fallback: mockData.search(q) }),
+  searchProperties: async (q: string, options?: Record<string, string | number | boolean | undefined>) => {
+    const mockData = await mockCatalogue();
+    return apiFetch<{ properties: any[]; total: number }>('/web/public/search', { query: { q, ...options }, fallback: mockData.search(q) });
+  },
 
-  brokerProperties: (token: string, query?: Record<string, string | number | boolean | undefined>) =>
-    apiFetch<{ properties: any[]; total: number }>('/web/broker/properties', { token, query, fallback: mockData.brokerProperties() }),
+  brokerProperties: async (token: string, query?: Record<string, string | number | boolean | undefined>) => {
+    const mockData = await mockCatalogue();
+    return apiFetch<{ properties: any[]; total: number }>('/web/broker/properties', { token, query, fallback: mockData.brokerProperties() });
+  },
 
-  brokerPropertyDetails: (token: string, id: string) =>
-    apiFetch<{ property: any }>(`/web/broker/properties/${id}`, { token, fallback: mockData.propertyDetails(id) }),
+  brokerPropertyDetails: async (token: string, id: string) => {
+    const mockData = await mockCatalogue();
+    return apiFetch<{ property: any }>(`/web/broker/properties/${id}`, { token, fallback: mockData.propertyDetails(id) });
+  },
 
   createProperty: (token: string, body: unknown) =>
     apiFetch('/web/broker/properties', { method: 'POST', token, body}),
@@ -437,8 +457,10 @@ export const webApi = {
   brokerSubscriptionDetails: (token: string) =>
     apiFetch('/web/broker/subscription', { token }),
 
-  subscriptionPackages: (token: string) =>
-    apiFetch('/web/broker/subscription/packages', { token, fallback: mockData.subscriptionPackages() }),
+  subscriptionPackages: async (token: string) => {
+    const mockData = await mockCatalogue();
+    return apiFetch('/web/broker/subscription/packages', { token, fallback: mockData.subscriptionPackages() });
+  },
 
   brokerSubscribe: (token: string, body: unknown) =>
     apiFetch('/web/broker/subscribe', { method: 'POST', token, body}),
@@ -482,8 +504,10 @@ export const webApi = {
   createBooking: (token: string, body: unknown) =>
     apiFetch('/web/customer/bookings', { method: 'POST', token, body}),
 
-  brokerPropertiesByCode: (brokerCode: string, query?: Record<string, string | number | boolean | undefined>) =>
-    apiFetch<{ properties: any[]; total: number }>(`/web/customer/broker/${brokerCode}/properties`, { query, fallback: mockData.brokerProperties() }),
+  brokerPropertiesByCode: async (brokerCode: string, query?: Record<string, string | number | boolean | undefined>) => {
+    const mockData = await mockCatalogue();
+    return apiFetch<{ properties: any[]; total: number }>(`/web/customer/broker/${brokerCode}/properties`, { query, fallback: mockData.brokerProperties() });
+  },
 
   registerBroker: (body: unknown) =>
     apiFetch<{ success: boolean; message: string; expiresInSeconds?: number }>('/broker/register', { method: 'POST', body}),

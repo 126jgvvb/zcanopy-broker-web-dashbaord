@@ -5,10 +5,18 @@ import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { webApi, uploadToSpaces } from '@/lib/api';
-import { createVideoPoster } from '@/lib/mediaOptimization';
+
 import { toCdnUrl } from '@/lib/mediaUrl';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
-import GoogleMap from '@/components/GoogleMap';
+import dynamic from 'next/dynamic';
+
+// The map is only shown for booked properties, so it is loaded on demand.
+const GoogleMap = dynamic(() => import('@/components/GoogleMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] w-full rounded-2xl border border-gray-200 bg-gray-100" />
+  ),
+});
 import StandardBookingPriceSelect from '@/components/StandardBookingPriceSelect';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import { useBrokerPropertyDetails, useBrokerSubscriptionDetails, revalidateProperties } from '@/lib/swr';
@@ -224,7 +232,10 @@ export default function BrokerPropertyDetailPage() {
     setVideoUploading(true);
     // Extract the poster in the background so a slow decode never delays the
     // uploaded video appearing in the preview.
-    const posterPromise = createVideoPoster(file);
+    // The poster encoder is only needed while uploading a video.
+    const posterPromise = import('@/lib/mediaOptimization')
+      .then((m) => m.createVideoPoster(file))
+      .catch(() => null);
     try {
       const url = await uploadToSpaces(file, 'properties');
       setVideos((prev) => [...prev, url]);
