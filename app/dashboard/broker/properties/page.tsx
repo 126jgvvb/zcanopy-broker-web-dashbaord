@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import PropertyCard from '@/components/PropertyCard';
+import StandardBookingPriceSelect from '@/components/StandardBookingPriceSelect';
 import { webApi, uploadToSpaces } from '@/lib/api';
 import { createVideoPoster } from '@/lib/mediaOptimization';
 import { toCdnUrl } from '@/lib/mediaUrl';
@@ -632,6 +633,16 @@ export default function BrokerPropertiesPage() {
                 placeholder="e.g. 50000 (min 5,000)"
               />
               {feeError && <p className="mt-1 text-xs text-red-500">{feeError}</p>}
+              <StandardBookingPriceSelect
+                id="standard-booking-price-new"
+                price={createForm.price}
+                fee={createForm.brokerBookingFee}
+                onSelectFee={(value) => {
+                  setCreateForm((prev) => ({ ...prev, brokerBookingFee: value }));
+                  validatePriceAndFee(createForm.price, value);
+                }}
+                disabled={creating}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>

@@ -8,6 +8,7 @@ import { createVideoPoster } from '@/lib/mediaOptimization';
 import { toCdnUrl } from '@/lib/mediaUrl';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import GoogleMap from '@/components/GoogleMap';
+import StandardBookingPriceSelect from '@/components/StandardBookingPriceSelect';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 import { useBrokerPropertyDetails, useBrokerSubscriptionDetails, revalidateProperties } from '@/lib/swr';
@@ -364,6 +365,13 @@ export default function BrokerPropertyDetailPage() {
                 onChange={(e) => setEditForm({ ...editForm, brokerBookingFee: e.target.value })}
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]"
                 placeholder="e.g. 50000"
+              />
+              <StandardBookingPriceSelect
+                id={`standard-booking-price-${id}`}
+                price={editForm.price}
+                fee={editForm.brokerBookingFee}
+                onSelectFee={(value) => setEditForm({ ...editForm, brokerBookingFee: value })}
+                disabled={saving}
               />
             </div>
             <div>
