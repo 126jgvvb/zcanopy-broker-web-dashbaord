@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { webApi, uploadToSpaces } from '@/lib/api';
 import { createVideoPoster } from '@/lib/mediaOptimization';
 import { toCdnUrl } from '@/lib/mediaUrl';
@@ -10,7 +11,6 @@ import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import GoogleMap from '@/components/GoogleMap';
 import StandardBookingPriceSelect from '@/components/StandardBookingPriceSelect';
 import { ChevronLeft, ChevronRight, ExternalLink, X } from 'lucide-react';
-import { COLORS } from '@/lib/theme';
 import { useBrokerPropertyDetails, useBrokerSubscriptionDetails, revalidateProperties } from '@/lib/swr';
 
 interface Property {
@@ -408,7 +408,7 @@ export default function BrokerPropertyDetailPage() {
                 Delete Property
               </h3>
               <p className="mt-2 text-sm text-[var(--zcanopy-muted)]">
-                Are you sure you want to delete "{property.title}"? This action cannot be undone.
+                Are you sure you want to delete &quot;{property.title}&quot;? This action cannot be undone.
               </p>
               <div className="mt-5 flex gap-3">
                 <button
@@ -444,7 +444,7 @@ export default function BrokerPropertyDetailPage() {
                 Make Property Available
               </h3>
               <p className="mt-2 text-sm text-[var(--zcanopy-muted)]">
-                Are you sure you want to mark "{property.title}" as available? This will allow new bookings on this property.
+                Are you sure you want to mark &quot;{property.title}&quot; as available? This will allow new bookings on this property.
               </p>
               <div className="mt-3 rounded-xl border border-[var(--zcanopy-accent-gold)]/35 bg-[var(--zcanopy-accent-gold)]/10 p-3">
                 <p className="text-sm text-[var(--zcanopy-card-brown)]">
@@ -483,12 +483,11 @@ export default function BrokerPropertyDetailPage() {
             ) : photos.length > 0 ? (
               <div className="relative">
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gray-100">
-                  <img
+                  <Image
                     src={photos[currentPhotoIndex]}
                     alt={property.title}
-                    width={1200}
-                    height={900}
-                    decoding="async"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 640px"
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -512,7 +511,7 @@ export default function BrokerPropertyDetailPage() {
                 <div className="mt-4 flex gap-2 overflow-x-auto">
                   {photos.map((photo, idx) => (
                     <div key={idx} className="relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-lg">
-                      <img src={photo} alt="" width={320} height={256} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      <Image src={photo} alt="" width={320} height={256} sizes="80px" className="h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => {

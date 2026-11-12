@@ -86,8 +86,6 @@ const PROPERTY_TYPES = [
   },
 ] as const;
 
-type PropertyType = typeof PROPERTY_TYPES[number];
-type PropertySubtype = PropertyType['subtypes'][number];
 
 export default function BrokerPropertiesPage() {
   const [mapsReady, setMapsReady] = useState(false);
@@ -230,15 +228,6 @@ export default function BrokerPropertiesPage() {
     };
   }, [atPropertyLocation]);
 
-  // Fill the location name from the device position, but never overwrite a
-  // name the broker typed themselves.
-  useEffect(() => {
-    if (atPropertyLocation !== 'yes') return;
-    if (gpsLat === 0 || gpsLng === 0) return;
-    if (!mapsReady) return;
-    reverseGeocode(gpsLat, gpsLng);
-  }, [gpsLat, gpsLng, atPropertyLocation, mapsReady]);
-
   const reverseGeocode = async (latitude: number, longitude: number) => {
     if (!window.google?.maps) return;
     try {
@@ -259,6 +248,15 @@ export default function BrokerPropertiesPage() {
       // ignore reverse geocode failure
     }
   };
+
+  // Fill the location name from the device position, but never overwrite a
+  // name the broker typed themselves.
+  useEffect(() => {
+    if (atPropertyLocation !== 'yes') return;
+    if (gpsLat === 0 || gpsLng === 0) return;
+    if (!mapsReady) return;
+    reverseGeocode(gpsLat, gpsLng);
+  }, [gpsLat, gpsLng, atPropertyLocation, mapsReady]);
 
   /**
    * Turns a hand-typed location into coordinates. Used when the broker
@@ -349,9 +347,6 @@ export default function BrokerPropertiesPage() {
     return () => clearTimeout(debounceTimer);
   }, [createForm.location, showCreate, mapsReady]);
 
-  const handleLocationBlur = () => {
-    setTimeout(() => setShowLocationDropdown(false), 200);
-  };
 
   const handleLocationSelect = async (description: string, placeId: string) => {
     setCreateForm((prev) => ({ ...prev, location: description }));

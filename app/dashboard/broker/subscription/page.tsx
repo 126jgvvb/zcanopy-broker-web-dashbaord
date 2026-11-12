@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { webApi } from '@/lib/api';
-import { LoadingState, ErrorState, Panel } from '@/components/ui';
+import { LoadingState, ErrorState } from '@/components/ui';
 import { Check, X } from 'lucide-react';
 import { COLORS } from '@/lib/theme';
 

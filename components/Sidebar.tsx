@@ -32,12 +32,6 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: <LayoutGrid className="h-4 w-4" /> },
-  { href: "/dashboard/broker", label: "Broker", icon: <Briefcase className="h-4 w-4" /> },
-  { href: "/dashboard/customer", label: "Customer", icon: <Users className="h-4 w-4" /> },
-];
-
 const BROKER_ITEMS: NavItem[] = [
   { href: "/dashboard/broker", label: "Overview", icon: <Briefcase className="h-4 w-4" /> },
   { href: "/dashboard/broker/properties", label: "Properties", icon: <Home className="h-4 w-4" /> },

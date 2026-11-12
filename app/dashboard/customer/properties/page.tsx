@@ -46,8 +46,7 @@ export default function CustomerPropertiesPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("zcanopy_token");
-
+    
     const promise = search
       ? webApi.searchProperties(search)
       : webApi.publicProperties();

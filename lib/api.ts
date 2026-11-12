@@ -32,11 +32,9 @@ function buildApiUrl(path: string): string {
 
 async function parseJsonResponse(res: Response): Promise<any> {
   const text = await res.text();
-  console.log('[apiFetch] Raw response text', text);
   if (!text) return null;
   try {
     const parsed = JSON.parse(text);
-    console.log('[apiFetch] Parsed response', parsed);
     return parsed.encrypted ? decryptResponse(parsed) : parsed;
   } catch {
     return text;
@@ -252,10 +250,6 @@ const CREDENTIAL_HINTS = [
   'no such',
 ];
 
-// apiFetch rewrites every 401 into "Session expired" after clearing the session.
-// On a sign-in form that wording is wrong, so it must not reach the user.
-const SESSION_EXPIRED = 'session expired';
-
 export function classifyAuthError(err: unknown): AuthErrorKind {
   if (err instanceof ApiError) {
     const msg = err.message.toLowerCase();
@@ -283,6 +277,19 @@ export function authErrorMessage(err: unknown, subject = 'email or password'): s
     return `Invalid ${subject}. Please check your details and try again.`;
   }
   return err instanceof Error && err.message ? err.message : 'Something went wrong. Please try again.';
+}
+
+/**
+ * Mock fallbacks are a development convenience only.
+ *
+ * In production a failed request must surface the error instead of being
+ * replaced by fake data: a faked "Withdrawal initiated" with a made-up
+ * balance once hid a failed payout from the broker, and a faked "Verified"
+ * response can make a broker believe they were approved when the server
+ * never approved them.
+ */
+function mockFallbackAllowed(): boolean {
+  return process.env.NODE_ENV === 'development';
 }
 
 export async function apiFetch<T = unknown>(
@@ -325,10 +332,10 @@ export async function apiFetch<T = unknown>(
 
     return data as T;
   } catch (err) {
-    if (fallback !== undefined && shouldUseFallback(err)) {
+    if (fallback !== undefined && mockFallbackAllowed() && shouldUseFallback(err)) {
       if (typeof console !== 'undefined') {
         console.warn(
-          `[api] Server request to "${path}" failed (${err instanceof ApiError ? err.status : 'network error'}). Falling back to mock data.`,
+          `[api] Server request to "${path}" failed (${err instanceof ApiError ? err.status : 'network error'}). Falling back to mock data (development only).`,
         );
       }
       return fallback as T;
@@ -366,16 +373,16 @@ export const webApi = {
     ),
 
   sendForgotPasswordOtp: (email: string) =>
-    apiFetch<{ success: boolean; message: string }>('/auth/forgot-password/otp/send', { method: 'POST', body: { email }, skipSessionHeader: true, fallback: { success: true, message: 'OTP sent (mock)' } }),
+    apiFetch<{ success: boolean; message: string }>('/auth/forgot-password/otp/send', { method: 'POST', body: { email }, skipSessionHeader: true}),
 
   verifyForgotPasswordOtp: (email: string, otp: string) =>
-    apiFetch<{ success: boolean; message: string; valid: boolean }>('/auth/forgot-password/otp/verify', { method: 'POST', body: { email, otp }, skipSessionHeader: true, fallback: { success: true, message: 'OTP verified (mock)', valid: true } }),
+    apiFetch<{ success: boolean; message: string; valid: boolean }>('/auth/forgot-password/otp/verify', { method: 'POST', body: { email, otp }, skipSessionHeader: true}),
 
   resetPassword: (email: string, password: string) =>
-    apiFetch<{ success: boolean; message: string }>('/auth/forgot-password/reset', { method: 'POST', body: { email, password }, skipSessionHeader: true, fallback: { success: true, message: 'Password reset (mock)' } }),
+    apiFetch<{ success: boolean; message: string }>('/auth/forgot-password/reset', { method: 'POST', body: { email, password }, skipSessionHeader: true}),
 
   brokerSetup: (body: unknown) =>
-    apiFetch('/web/auth/broker/setup', { method: 'POST', body, fallback: { success: true, token: 'mock-token-broker' } }),
+    apiFetch('/web/auth/broker/setup', { method: 'POST', body}),
 
   publicProperties: (query?: Record<string, string | number | boolean | undefined>) =>
     apiFetch<{ properties: any[]; total: number }>('/web/public/properties', { query, fallback: mockData.properties() }),
@@ -396,10 +403,10 @@ export const webApi = {
     apiFetch<{ property: any }>(`/web/broker/properties/${id}`, { token, fallback: mockData.propertyDetails(id) }),
 
   createProperty: (token: string, body: unknown) =>
-    apiFetch('/web/broker/properties', { method: 'POST', token, body, fallback: { success: true, property: { id: 'mock-prop-1' } } }),
+    apiFetch('/web/broker/properties', { method: 'POST', token, body}),
 
   updateProperty: (token: string, id: string, body: unknown) =>
-    apiFetch(`/web/broker/properties/${id}`, { method: 'PUT', token, body, fallback: { success: true } }),
+    apiFetch(`/web/broker/properties/${id}`, { method: 'PUT', token, body}),
 
   // No fallback: a swallowed 5xx previously reported success while the
   // property stayed unavailable.
@@ -407,95 +414,95 @@ export const webApi = {
     apiFetch(`/web/broker/properties/${id}/availability`, { method: 'PUT', token, body: { isAvailable } }),
 
   deleteProperty: (token: string, id: string) =>
-    apiFetch(`/web/broker/properties/${id}`, { method: 'DELETE', token, fallback: { success: true } }),
+    apiFetch(`/web/broker/properties/${id}`, { method: 'DELETE', token}),
 
   brokerDashboard: (token: string) =>
-    apiFetch('/web/broker/dashboard', { token, fallback: mockData.brokerDashboard() }),
+    apiFetch('/web/broker/dashboard', { token }),
 
   brokerBookings: (token: string) =>
-    apiFetch<{ bookings: any[] }>('/web/broker/bookings', { token, fallback: mockData.bookings() }),
+    apiFetch<{ bookings: any[] }>('/web/broker/bookings', { token }),
 
   brokerUpdateBookingStatus: (token: string, bookingId: string, status: string) =>
-    apiFetch(`/web/broker/bookings/${bookingId}/status`, { method: 'PUT', token, body: { status }, fallback: { success: true } }),
+    apiFetch(`/web/broker/bookings/${bookingId}/status`, { method: 'PUT', token, body: { status }}),
 
   brokerWallet: (token: string) =>
-    apiFetch('/web/broker/wallet', { token, fallback: mockData.wallet() }),
+    apiFetch('/web/broker/wallet', { token }),
 
   brokerWalletTransactions: (token: string, query?: Record<string, string | number | boolean | undefined>) =>
-    apiFetch<{ transactions: any[]; total: number }>('/web/broker/wallet/transactions', { token, query, fallback: mockData.walletTransactions() }),
+    apiFetch<{ transactions: any[]; total: number }>('/web/broker/wallet/transactions', { token, query }),
 
   brokerWithdraw: (token: string, body: unknown) =>
-    apiFetch('/web/broker/withdraw', { method: 'POST', token, body, fallback: { success: true, newBalance: 1500000, message: 'Withdrawal initiated' } }),
+    apiFetch('/web/broker/withdraw', { method: 'POST', token, body}),
 
   brokerSubscriptionDetails: (token: string) =>
-    apiFetch('/web/broker/subscription', { token, fallback: mockData.subscriptionDetails() }),
+    apiFetch('/web/broker/subscription', { token }),
 
   subscriptionPackages: (token: string) =>
     apiFetch('/web/broker/subscription/packages', { token, fallback: mockData.subscriptionPackages() }),
 
   brokerSubscribe: (token: string, body: unknown) =>
-    apiFetch('/web/broker/subscribe', { method: 'POST', token, body, fallback: { success: true, message: 'Subscription payment initiated' } }),
+    apiFetch('/web/broker/subscribe', { method: 'POST', token, body}),
 
   brokerCancelSubscription: (token: string, body: unknown) =>
-    apiFetch('/subscriptions/cancel', { method: 'POST', token, body, fallback: { success: true, message: 'Subscription cancelled' } }),
+    apiFetch('/subscriptions/cancel', { method: 'POST', token, body}),
 
   brokerNotifications: (token: string, query?: Record<string, string | number | boolean | undefined>) =>
-    apiFetch('/web/broker/notifications', { token, query, fallback: { notifications: [], total: 0 } }),
+    apiFetch('/web/broker/notifications', { token, query}),
 
   brokerMarkNotificationsRead: (token: string, body: unknown) =>
-    apiFetch('/web/broker/notifications/mark-read', { method: 'POST', token, body, fallback: { success: true } }),
+    apiFetch('/web/broker/notifications/mark-read', { method: 'POST', token, body}),
 
   brokerProfile: (token: string) =>
-    apiFetch('/web/broker/profile', { token, fallback: { id: 'b1', username: 'Demo Broker', email: 'broker@example.com', phoneNumber: '+256700000000', brokerCode: 'BRK-WEB-1', location: 'Kampala', isVerified: true } }),
+    apiFetch('/web/broker/profile', { token}),
 
   brokerUpdateProfile: (token: string, body: unknown) =>
-    apiFetch('/web/broker/profile', { method: 'POST', token, body, fallback: { success: true, message: 'Profile updated' } }),
+    apiFetch('/web/broker/profile', { method: 'POST', token, body}),
 
   brokerChangePassword: (token: string, body: unknown) =>
-    apiFetch('/web/broker/change-password', { method: 'POST', token, body, fallback: { success: true, message: 'Password changed' } }),
+    apiFetch('/web/broker/change-password', { method: 'POST', token, body}),
 
   brokerRequestChangePasswordOtp: (token: string) =>
-    apiFetch('/web/broker/change-password/request-otp', { method: 'POST', token, body: {}, fallback: { success: true, message: 'OTP sent' } }),
+    apiFetch('/web/broker/change-password/request-otp', { method: 'POST', token, body: {}}),
 
   brokerRequestDeleteAccountOtp: (token: string) =>
-    apiFetch('/web/broker/account/delete/request-otp', { method: 'POST', token, body: {}, fallback: { success: true, message: 'OTP sent' } }),
+    apiFetch('/web/broker/account/delete/request-otp', { method: 'POST', token, body: {}}),
 
   brokerHelp: (token: string, body: unknown) =>
-    apiFetch('/web/broker/help', { method: 'POST', token, body, fallback: { success: true, message: 'Support request submitted' } }),
+    apiFetch('/web/broker/help', { method: 'POST', token, body}),
 
   brokerDeleteAccount: (token: string, body: unknown) =>
-    apiFetch('/web/broker/account/delete', { method: 'POST', token, body, fallback: { success: true, message: 'Account deleted' } }),
+    apiFetch('/web/broker/account/delete', { method: 'POST', token, body}),
 
   customerProperties: (token: string, query?: Record<string, string | number | boolean | undefined>) =>
-    apiFetch<{ properties: any[]; total: number }>('/web/customer/properties', { token, query, fallback: mockData.customerProperties() }),
+    apiFetch<{ properties: any[]; total: number }>('/web/customer/properties', { token, query }),
 
   customerBookings: (token: string) =>
-    apiFetch<{ bookings: any[] }>('/web/customer/bookings', { token, fallback: mockData.bookings() }),
+    apiFetch<{ bookings: any[] }>('/web/customer/bookings', { token }),
 
   createBooking: (token: string, body: unknown) =>
-    apiFetch('/web/customer/bookings', { method: 'POST', token, body, fallback: { success: true, booking: { id: 'mock-booking-1', status: 'pending' } } }),
+    apiFetch('/web/customer/bookings', { method: 'POST', token, body}),
 
   brokerPropertiesByCode: (brokerCode: string, query?: Record<string, string | number | boolean | undefined>) =>
     apiFetch<{ properties: any[]; total: number }>(`/web/customer/broker/${brokerCode}/properties`, { query, fallback: mockData.brokerProperties() }),
 
   registerBroker: (body: unknown) =>
-    apiFetch<{ success: boolean; message: string; expiresInSeconds?: number }>('/broker/register', { method: 'POST', body, fallback: { success: false, message: 'Could not reach the registration service. Please try again.' } }),
+    apiFetch<{ success: boolean; message: string; expiresInSeconds?: number }>('/broker/register', { method: 'POST', body}),
 
   sendBrokerOtp: (body: unknown) =>
-    apiFetch('/broker/otp/send', { method: 'POST', body, fallback: { success: true, message: 'OTP sent', expiresInSeconds: 600 } }),
+    apiFetch('/broker/otp/send', { method: 'POST', body}),
 
   verifyBrokerOtp: (body: unknown) =>
-    apiFetch('/broker/otp/verify', { method: 'POST', body, fallback: { success: true, message: 'Verified', brokerCode: 'BRK-MOCK-1' } }),
+    apiFetch('/broker/otp/verify', { method: 'POST', body}),
 
   createCustomerSession: (body: unknown) =>
-    apiFetch('/customer/session', { method: 'POST', body, fallback: { sessionToken: 'mock-customer-session', token: 'mock-customer-token', customerId: 'mock-customer-1' } }),
+    apiFetch('/customer/session', { method: 'POST', body}),
 
   uploadFile: (file: File, folder = 'properties') => uploadToSpaces(file, folder),
 
   uploadMultipleFiles: (files: File[], folder = 'properties') => uploadMultipleToSpaces(files, folder),
 
   submitVerificationDocuments: (token: string, body: { idFrontUrl: string; idBackUrl: string }) =>
-    apiFetch('/web/broker/verification/documents', { method: 'POST', token, body, fallback: { success: true, message: 'Documents submitted for review' } }),
+    apiFetch('/web/broker/verification/documents', { method: 'POST', token, body}),
 
   getVerificationStatus: (token: string) =>
     apiFetch<{ isVerified: boolean; idFrontUrl?: string; idBackUrl?: string; verificationStatus: string }>('/web/broker/verification/status', { token, fallback: { isVerified: false, verificationStatus: 'unsubmitted' } }),
@@ -503,10 +510,10 @@ export const webApi = {
   /* ---- Landlord & title (UgNLIS) verification ---- */
 
   submitLandlordDetails: (token: string, payload: unknown) =>
-    apiFetch('/web/broker/landlord-details', { method: 'POST', token, body: payload, fallback: { success: true, message: 'Landlord details submitted (mock)', status: 'pending' } }),
+    apiFetch('/web/broker/landlord-details', { method: 'POST', token, body: payload}),
 
   sendLandlordBrokerOtps: (token: string, body: { fullName: string; nin: string; phoneNumber: string }) =>
-    apiFetch('/web/broker/landlord-details/send-broker-otps', { method: 'POST', token, body, fallback: { success: true, message: 'Confirmation OTPs sent (mock)' } }),
+    apiFetch('/web/broker/landlord-details/send-broker-otps', { method: 'POST', token, body}),
 
   // The landlord-authorisation calls deliberately have no mock fallback: a
   // faked "verified" response would let a broker believe they were approved
@@ -529,8 +536,8 @@ export const webApi = {
     apiFetch<LandlordVerificationStatus>('/web/broker/landlord-details/status', { token, fallback: { status: 'unsubmitted' } }),
 
   requestWithdrawalOtp: (token: string) =>
-    apiFetch('/web/broker/withdraw/request-otp', { method: 'POST', token, body: {}, fallback: { success: true, message: 'OTP sent to landlord (mock)' } }),
+    apiFetch('/web/broker/withdraw/request-otp', { method: 'POST', token, body: {}}),
 
   brokerLogout: (token: string) =>
-    apiFetch('/web/broker/logout', { method: 'POST', token, body: {}, fallback: { success: true, message: 'Logged out successfully' } }),
+    apiFetch('/web/broker/logout', { method: 'POST', token, body: {}}),
 };

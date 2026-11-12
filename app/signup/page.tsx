@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Script from 'next/script';
 import { useRouter } from 'next/navigation';
 import { webApi, uploadToSpaces } from '@/lib/api';
 import { IdCard, Eye, EyeOff } from 'lucide-react';
 import { authErrorMessage } from '@/lib/api';
-import { COLORS } from '@/lib/theme';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
 
 function IdUpload({
   label,
@@ -76,8 +74,10 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  const [googleReady, setGoogleReady] = useState(false);
 
   useEffect(() => {
+    if (!googleReady) return;
     if (!window.google?.accounts?.id) return;
     window.google.accounts.id.initialize({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
@@ -112,7 +112,7 @@ export default function SignUpPage() {
         text: 'continue_with',
       });
     }
-  }, []);
+  }, [googleReady]);
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -123,15 +123,6 @@ export default function SignUpPage() {
       setPreview(file ? URL.createObjectURL(file) : null);
     };
   }
-
-  const toBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -254,7 +245,14 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-5">
+    <>
+      {/* The Google Identity Services script is only needed on this page. */}
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => setGoogleReady(true)}
+      />
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-5">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(209,160,84,0.22),transparent_55%)]" />
       <div className="relative w-full max-w-sm rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
         <div className="mb-4 text-center">
@@ -422,5 +420,6 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }

@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { webApi } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
-import { COLORS } from '@/lib/theme';
 
 export default function BrokerSettingsPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
+  // The profile is loaded into state but the page edits a copy in `form`, so
+  // only the setter is used here.
+  const [, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -23,7 +24,6 @@ export default function BrokerSettingsPage() {
   const [deleteOtpValue, setDeleteOtpValue] = useState('');
   const [deleteOtpLoading, setDeleteOtpLoading] = useState(false);
   const [notifications, setNotifications] = useState({ newForYou: true, accountActivity: true, autoPlay: true });
-  const [deleteConfirm, setDeleteConfirm] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');

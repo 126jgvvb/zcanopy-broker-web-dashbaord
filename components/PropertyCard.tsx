@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useCallback } from "react";
 import { toCdnUrl } from "@/lib/mediaUrl";
@@ -46,13 +47,11 @@ export default function PropertyCard({ id, title, description, propertyType, loc
   const cardContent = (
     <div className="group block overflow-hidden rounded-2xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] shadow-[var(--zcanopy-shadow)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--zcanopy-shadow-hover)]">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-[color-mix(in_srgb,var(--zcanopy-card-brown)_8%,white)]">
-        <img
+        <Image
           src={mainImage}
           alt={title}
-          width={1200}
-          height={900}
-          loading="lazy"
-          decoding="async"
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 420px"
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
@@ -87,13 +86,12 @@ export default function PropertyCard({ id, title, description, propertyType, loc
             >
               {images.slice(1).map((img, idx) => (
                 <div key={idx} className="h-20 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 snap-center">
-                  <img
+                  <Image
                     src={img}
                     alt={`${title} ${idx + 2}`}
                     width={240}
                     height={200}
-                    loading="lazy"
-                    decoding="async"
+                    sizes="96px"
                     className="h-full w-full object-cover"
                   />
                 </div>

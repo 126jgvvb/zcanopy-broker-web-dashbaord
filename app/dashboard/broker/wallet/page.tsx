@@ -145,8 +145,14 @@ export default function BrokerWalletPage() {
       } else {
         setWithdrawError((res as any).message || 'Withdrawal failed');
       }
-    } catch {
-      setWithdrawError('Network error. Please try again.');
+    } catch (err) {
+      // Show what the server actually said: a failed withdrawal must never be
+      // mistaken for a successful one.
+      setWithdrawError(
+        err instanceof Error && err.message
+          ? err.message
+          : 'Withdrawal failed. Please try again.',
+      );
     } finally {
       setWithdrawing(false);
     }

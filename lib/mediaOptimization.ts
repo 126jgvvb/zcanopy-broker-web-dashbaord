@@ -175,7 +175,10 @@ export async function optimizeMediaFile(file: File, options: ImageOptimizeOption
 
 function waitForMediaEvent(target: HTMLMediaElement, event: string, timeoutMs = 10000) {
   return new Promise<void>((resolve, reject) => {
-    let timer: ReturnType<typeof setTimeout>;
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Timed out waiting for ${event}`));
+    }, timeoutMs);
     const cleanup = () => {
       target.removeEventListener(event, onEvent);
       target.removeEventListener("error", onError);
@@ -189,10 +192,6 @@ function waitForMediaEvent(target: HTMLMediaElement, event: string, timeoutMs = 
       cleanup();
       reject(new Error(`Video failed while waiting for ${event}`));
     };
-    timer = setTimeout(() => {
-      cleanup();
-      reject(new Error(`Timed out waiting for ${event}`));
-    }, timeoutMs);
     target.addEventListener(event, onEvent, { once: true });
     target.addEventListener("error", onError, { once: true });
   });

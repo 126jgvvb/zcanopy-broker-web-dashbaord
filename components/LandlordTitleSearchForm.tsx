@@ -433,8 +433,8 @@ export default function LandlordTitleSearchForm({
     }
 
     const payload = buildPayload();
-    // Structured JSON payload ready for DB ingestion / UgNLIS PDF parsing.
-    console.log('[UgNLIS] Title search payload:', JSON.stringify(payload, null, 2));
+    // The payload holds the landlord's NIN and personal details, so it is
+    // never written to the browser console.
 
     setSubmitting(true);
     try {

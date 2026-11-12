@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { webApi } from '@/lib/api';
-import { LoadingState, ErrorState, Panel } from '@/components/ui';
+import { LoadingState, ErrorState } from '@/components/ui';
 
 interface Booking {
   id: string;
@@ -21,6 +21,7 @@ export default function BrokerBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState('');
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -37,11 +38,18 @@ export default function BrokerBookingsPage() {
     const token = localStorage.getItem('zcanopy_token');
     if (!token) return;
     setUpdating(bookingId);
+    setStatusError('');
     try {
       await webApi.brokerUpdateBookingStatus(token, bookingId, status);
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status } : b)));
-    } catch {
-      // ignore
+    } catch (err) {
+      // The status is only updated locally once the server confirms it, so a
+      // failed change never looks like it went through.
+      setStatusError(
+        err instanceof Error && err.message
+          ? err.message
+          : `Could not mark the booking as ${status}. Please try again.`,
+      );
     } finally {
       setUpdating(null);
     }
@@ -78,6 +86,15 @@ export default function BrokerBookingsPage() {
           aria-label="Search bookings by phone, property title, or amount"
         />
       </div>
+
+      {statusError ? (
+        <p
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          role="alert"
+        >
+          {statusError}
+        </p>
+      ) : null}
 
       <div className="zc-table-wrap">
         <table className="zc-table">

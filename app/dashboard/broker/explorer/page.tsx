@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { webApi } from '@/lib/api';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
-import { COLORS } from '@/lib/theme';
 
 interface Property {
   id: string;

@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Script from "next/script";
 import { useRouter } from 'next/navigation';
 import { webApi, authErrorMessage } from '@/lib/api';
-import { COLORS } from '@/lib/theme';
 import { Eye, EyeOff } from 'lucide-react';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:4000/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,8 +23,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  const [googleReady, setGoogleReady] = useState(false);
 
   useEffect(() => {
+    if (!googleReady) return;
     if (!window.google?.accounts?.id) return;
     window.google.accounts.id.initialize({
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
@@ -58,7 +58,7 @@ export default function LoginPage() {
         text: 'signin_with',
       });
     }
-  }, []);
+  }, [googleReady]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +160,12 @@ export default function LoginPage() {
   }
 
   return (
+    <>
+    <Script
+      src="https://accounts.google.com/gsi/client"
+      strategy="afterInteractive"
+      onLoad={() => setGoogleReady(true)}
+    />
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(209,160,84,0.22),transparent_55%)]" />
       <div className="relative w-full max-w-sm rounded-3xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-6 shadow-[var(--zcanopy-shadow)]">
@@ -347,5 +353,6 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }
