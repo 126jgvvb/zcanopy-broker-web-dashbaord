@@ -492,8 +492,10 @@ export default function BrokerPropertyDetailPage() {
                 <p className="text-sm text-gray-600">Uploading photos...</p>
               </div>
             ) : photos.length > 0 ? (
-              <div className="relative">
-                <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gray-100">
+              <div>
+                {/* The frame is the positioning context for the picture, so the
+                    photo can never spill over the thumbnails below it. */}
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-gray-100">
                   <Image
                     src={photos[currentPhotoIndex]}
                     alt={property.title}
@@ -501,28 +503,50 @@ export default function BrokerPropertyDetailPage() {
                     sizes="(max-width: 1024px) 100vw, 640px"
                     className="h-full w-full object-cover"
                   />
+
+                  {photos.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={prevPhoto}
+                        aria-label="Previous photo"
+                        className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={nextPhoto}
+                        aria-label="Next photo"
+                        className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </button>
+                      <span className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                        {currentPhotoIndex + 1} / {photos.length}
+                      </span>
+                    </>
+                  )}
                 </div>
-                {photos.length > 1 && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <button
-                      onClick={prevPhoto}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <span className="text-sm text-gray-500">{currentPhotoIndex + 1} / {photos.length}</span>
-                    <button
-                      onClick={nextPhoto}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
-                )}
-                <div className="mt-4 flex gap-2 overflow-x-auto">
+
+                {/* The thumbnails sit on the card background, never on top of
+                    the large photo. */}
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                   {photos.map((photo, idx) => (
                     <div key={idx} className="relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-lg">
-                      <Image src={photo} alt="" width={320} height={256} sizes="80px" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPhotoIndex(idx)}
+                        aria-label={`View photo ${idx + 1} of ${photos.length}`}
+                        aria-current={idx === currentPhotoIndex}
+                        className={`h-full w-full transition ${
+                          idx === currentPhotoIndex
+                            ? 'ring-2 ring-inset ring-[var(--zcanopy-primary)]'
+                            : 'opacity-70 hover:opacity-100'
+                        }`}
+                      >
+                        <Image src={photo} alt="" width={320} height={256} sizes="80px" className="h-full w-full object-cover" />
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -531,6 +555,7 @@ export default function BrokerPropertyDetailPage() {
                             setCurrentPhotoIndex(Math.max(0, photos.length - 2));
                           }
                         }}
+                        aria-label={`Remove photo ${idx + 1}`}
                         className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
                       >
                         <X className="h-3 w-3" />
