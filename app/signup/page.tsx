@@ -3,50 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import { useRouter } from 'next/navigation';
-import { webApi, uploadToSpaces } from '@/lib/api';
-import { IdCard, Eye, EyeOff } from 'lucide-react';
+import { webApi } from '@/lib/api';
+import { Eye, EyeOff } from 'lucide-react';
 import { authErrorMessage } from '@/lib/api';
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics';
-
-function IdUpload({
-  label,
-  file,
-  preview,
-  onSelect,
-}: {
-  label: string;
-  file: File | null;
-  preview: string | null;
-  onSelect: (file: File | null) => void;
-}) {
-  return (
-    <div>
-          <p className="text-xs font-medium text-[var(--zcanopy-card-brown)]">{label}</p>
-      <label
-        className={`flex h-16 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed text-center transition-colors ${
-          preview ? 'border-[var(--zcanopy-primary)]' : 'border-gray-300 hover:border-[var(--zcanopy-primary)]'
-        }`}
-      >
-        {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt={label} width={640} height={360} decoding="async" className="h-full w-full object-contain" />
-        ) : (
-          <div className="text-gray-400">
-            <IdCard className="mx-auto h-5 w-5" />
-            <p className="mt-0.5 text-[11px]">Tap to upload</p>
-          </div>
-        )}
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
-        />
-      </label>
-      {file ? <p className="mt-1 truncate text-xs text-gray-400">{file.name}</p> : null}
-    </div>
-  );
-}
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -63,10 +23,7 @@ export default function SignUpPage() {
   const [setupConfirmPassword, setSetupConfirmPassword] = useState('');
   const [showSetupPassword, setShowSetupPassword] = useState(false);
   const [setupBrandName, setSetupBrandName] = useState('');
-  const [idFront, setIdFront] = useState<File | null>(null);
-  const [idBack, setIdBack] = useState<File | null>(null);
-  const [idFrontPreview, setIdFrontPreview] = useState<string | null>(null);
-  const [idBackPreview, setIdBackPreview] = useState<string | null>(null);
+
   const [otp, setOtp] = useState({ email: '', phone: '' });
   const [brokerCode, setBrokerCode] = useState('');
   const [error, setError] = useState('');
@@ -119,35 +76,21 @@ export default function SignUpPage() {
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  function pick(setFile: (f: File | null) => void, setPreview: (p: string | null) => void) {
-    return (file: File | null) => {
-      setFile(file);
-      setPreview(file ? URL.createObjectURL(file) : null);
-    };
-  }
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     trackEvent(AnalyticsEvents.SignupStarted);
     setError('');
 
-    if (!idFront || !idBack) {
-      setError('Please upload both ID images');
-      return;
-    }
-
     setLoading(true);
     try {
-      const [idFrontUrl, idBackUrl] = await Promise.all([
-        uploadToSpaces(idFront, 'verification'),
-        uploadToSpaces(idBack, 'verification'),
-      ]);
-
       const data = await webApi.registerBroker({
         fullName: form.fullName,
         email: form.email,
         phoneNumber: form.phoneNumber,
-        idFrontUrl,
-        idBackUrl,
+        // ID verification images are no longer collected at signup: the
+        // landlord integration verifies brokers instead.
+        idFrontUrl: '',
+        idBackUrl: '',
       });
       if (!(data as any)?.success) {
         setError((data as any)?.message || 'Registration failed');
@@ -291,21 +234,6 @@ export default function SignUpPage() {
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Phone Number</label>
               <input type="tel" value={form.phoneNumber} onChange={update('phoneNumber')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <IdUpload
-                label="ID Front"
-                file={idFront}
-                preview={idFrontPreview}
-                onSelect={pick(setIdFront, setIdFrontPreview)}
-              />
-              <IdUpload
-                label="ID Back"
-                file={idBack}
-                preview={idBackPreview}
-                onSelect={pick(setIdBack, setIdBackPreview)}
-              />
             </div>
 
             {error && <p className="text-xs text-red-600">{error}</p>}
