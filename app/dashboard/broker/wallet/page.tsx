@@ -14,6 +14,18 @@ const LandlordTitleSearchForm = dynamic(
 );
 import { AlertTriangle, CheckCircle, KeyRound } from 'lucide-react';
 
+interface EscrowBooking {
+  id: string;
+  propertyTitle?: string;
+  bookingCode?: string;
+  status?: string;
+  escrowEnabled?: boolean;
+  escrowAmount?: number;
+  fundsReleased?: boolean;
+  fundsReversed?: boolean;
+  escrowEndsAt?: string;
+}
+
 interface WalletTransaction {
   id: string;
   type: string;
@@ -36,6 +48,8 @@ export default function BrokerWalletPage() {
   const [provider, setProvider] = useState('MTN');
   const [payeeName, setPayeeName] = useState('');
   const [landlordStatus, setLandlordStatus] = useState<LandlordVerificationStatus | null>(null);
+  // The broker's bookings, used to show what the held amount is made of.
+  const [bookings, setBookings] = useState<EscrowBooking[]>([]);
 
   // Landlord OTP withdrawal flow state
   const [otpSent, setOtpSent] = useState(false);
@@ -59,17 +73,39 @@ export default function BrokerWalletPage() {
       webApi.brokerWallet(token),
       webApi.brokerWalletTransactions(token),
       webApi.getLandlordDetailsStatus(token).catch(() => ({ status: 'unsubmitted' })),
+      webApi.brokerBookings(token).catch(() => ({ bookings: [] })),
     ])
-      .then(([walletData, txData, landlordData]: any) => {
+      .then(([walletData, txData, landlordData, bookingsData]: any) => {
         setWallet(walletData);
         setTransactions(txData.transactions || []);
         setLandlordStatus(landlordData || { status: 'unsubmitted' });
+        setBookings(bookingsData?.bookings || []);
       })
       .catch(() => setError('Failed to load wallet data'))
       .finally(() => setLoading(false));
   }, []);
 
   const canWithdraw = landlordStatus?.status === 'approved';
+
+  /**
+   * The bookings that still hold customer money: the countdown is running and
+   * neither the customer nor the automatic refund has moved it yet. Released
+   * bookings are not held any more, so they are left out.
+   */
+  const heldBookings = bookings.filter(
+    (b) =>
+      b.escrowEnabled &&
+      !b.fundsReleased &&
+      !b.fundsReversed &&
+      Number(b.escrowAmount || 0) > 0,
+  );
+  const heldBookingTotal = heldBookings.reduce(
+    (sum, b) => sum + Number(b.escrowAmount || 0),
+    0,
+  );
+  const releasedTotal = bookings
+    .filter((b) => b.fundsReleased)
+    .reduce((sum, b) => sum + Number(b.escrowAmount || 0), 0);
 
   const handleSendOtp = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -187,6 +223,41 @@ export default function BrokerWalletPage() {
             {wallet ? `UGX ${(wallet.heldBalance ?? 0).toLocaleString()}` : 'UGX 0'}
           </p>
           <p className="text-sm text-gray-500">Booking funds awaiting customer approval — not withdrawable yet</p>
+
+          {/* What the held amount is made of, so it is clear that it drops
+              back to zero as the customers release the funds. */}
+          <div className="mt-3 space-y-1 border-t border-[var(--zcanopy-border)] pt-3 text-xs text-gray-500">
+            {heldBookings.length > 0 ? (
+              <>
+                <p className="font-medium text-[var(--zcanopy-card-brown)]">
+                  {heldBookings.length} booking{heldBookings.length === 1 ? '' : 's'} still holding UGX{" "}
+                  {heldBookingTotal.toLocaleString()}
+                </p>
+                {heldBookings.slice(0, 3).map((b) => (
+                  <p key={b.id} className="truncate">
+                    {b.propertyTitle || 'Property'}
+                    {b.bookingCode ? ` · ${b.bookingCode}` : ''} — UGX{" "}
+                    {Number(b.escrowAmount || 0).toLocaleString()}
+                  </p>
+                ))}
+                {heldBookings.length > 3 ? (
+                  <p>and {heldBookings.length - 3} more</p>
+                ) : null}
+                <p className="pt-1">
+                  The amount falls as each customer releases the funds. You can
+                  only withdraw it once it has been released to your balance.
+                </p>
+              </>
+            ) : (
+              <p className="font-medium text-[var(--zcanopy-card-brown)]">
+                Nothing is held in escrow — all booking funds have been released
+                to your balance.
+              </p>
+            )}
+            {releasedTotal > 0 ? (
+              <p>UGX {releasedTotal.toLocaleString()} released to your balance so far</p>
+            ) : null}
+          </div>
         </Panel>
         <Panel title="Currency">
           <p className="text-3xl font-bold text-[var(--zcanopy-card-brown)]">{wallet?.currency || 'UGX'}</p>
