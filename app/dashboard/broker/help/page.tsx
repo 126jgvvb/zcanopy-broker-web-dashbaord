@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { webApi } from '@/lib/api';
 import { Panel } from '@/components/ui';
+import TermsContent from './terms-content';
 
 export default function BrokerHelpPage() {
   const [activeTab, setActiveTab] = useState('faq');
@@ -113,7 +114,7 @@ export default function BrokerHelpPage() {
       </div>
 
       <div className="flex gap-2 border-b border-[var(--zcanopy-border)]">
-        {['faq', 'contact'].map((tab) => (
+        {['faq', 'contact', 'terms'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -121,7 +122,7 @@ export default function BrokerHelpPage() {
               activeTab === tab ? 'border-b-2 border-[var(--zcanopy-primary)] text-[var(--zcanopy-primary)]' : 'text-gray-500'
             }`}
           >
-            {tab === 'faq' ? 'FAQ' : 'Contact Support'}
+            {tab === 'faq' ? 'FAQ' : tab === 'contact' ? 'Contact Support' : 'Terms of Agreement'}
           </button>
         ))}
       </div>
@@ -135,6 +136,12 @@ export default function BrokerHelpPage() {
             </details>
           ))}
         </div>
+      )}
+
+      {activeTab === 'terms' && (
+        <Panel title="Terms of Agreement">
+          <TermsContent />
+        </Panel>
       )}
 
       {activeTab === 'contact' && (
