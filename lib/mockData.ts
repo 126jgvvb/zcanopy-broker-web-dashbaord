@@ -36,11 +36,11 @@ export const mockData = {
   subscriptionDetails: () => ({
     subscriptionTier: 'prop',
     subscriptionExpiresAt: null,
-    limits: { maxProperties: 5, maxPhotosPerProperty: 15, maxVideosPerProperty: 1, maxVideoSizeMB: 500 },
+    limits: { maxProperties: 3, maxPhotosPerProperty: 15, maxVideosPerProperty: 1, maxVideoSizeMB: 500 },
   }),
   subscriptionPackages: () => ({
     tiers: [
-      { tier: 'prop', name: 'Prop', price: 0, currency: 'UGX', expiryDays: 0, advantages: ['Up to 5 properties', '15 photos per property', '1 video per property', '500MB max video size'], maxProperties: 5, maxPhotosPerProperty: 15, maxVideosPerProperty: 1, maxVideoSizeMB: 500 },
+      { tier: 'prop', name: 'Prop', price: 0, currency: 'UGX', expiryDays: 0, advantages: ['Up to 3 properties', '15 photos per property', '1 video per property', '500MB max video size'], maxProperties: 5, maxPhotosPerProperty: 15, maxVideosPerProperty: 1, maxVideoSizeMB: 500 },
       { tier: 'buttress', name: 'Buttress', price: 50000, currency: 'UGX', expiryDays: 30, advantages: ['Up to 16 properties', '50 photos per property', '4 videos per property', '4GB max video size', 'Priority support'], maxProperties: 16, maxPhotosPerProperty: 50, maxVideosPerProperty: 4, maxVideoSizeMB: 4096 },
       { tier: 'fibrous', name: 'Fibrous', price: 25000, currency: 'UGX', expiryDays: 30, advantages: ['Up to 12 properties', '25 photos per property', '2 videos per property', '12GB max video size', 'Premium support', 'Advanced analytics'], maxProperties: 12, maxPhotosPerProperty: 25, maxVideosPerProperty: 2, maxVideoSizeMB: 12288 },
     ],

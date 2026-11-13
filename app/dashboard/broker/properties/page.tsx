@@ -130,7 +130,7 @@ export default function BrokerPropertiesPage() {
   const tier = {
     name: (subscriptionQuery.data as any)?.subscriptionTier || 'prop',
     limits: {
-      maxProperties: limits.maxProperties || 5,
+      maxProperties: limits.maxProperties || 3,
       maxPhotosPerProperty: limits.maxPhotosPerProperty || 15,
       maxVideosPerProperty: limits.maxVideosPerProperty || 1,
       maxVideoSizeMB: limits.maxVideoSizeMB || 500,
