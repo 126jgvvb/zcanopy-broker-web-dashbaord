@@ -59,7 +59,13 @@ export default function BrokerDashboardPage() {
         });
         setWalletBalance((walletData as any).balance || 0);
       })
-      .catch(() => setError('Failed to load dashboard data'))
+      .catch((err) => {
+        // Keep the real reason (which call failed, and why) instead of a
+        // generic message: with one of the four calls broken, the page can
+        // only say “something failed” without this.
+        const detail = err instanceof Error && err.message ? err.message : '';
+        setError(detail ? `Failed to load dashboard data (${detail})` : 'Failed to load dashboard data');
+      })
       .finally(() => setLoading(false));
   }, []);
 
