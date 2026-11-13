@@ -256,7 +256,10 @@ html.dark .hover\:bg-gray-100:hover {
 }
 
 .zc-table-wrap {
-  overflow: hidden;
+  overflow: auto;
+  /* Cap the height: once a table outgrows the panel it scrolls inside the
+     wrapper instead of stretching the page. */
+  max-height: 32rem;
   border-radius: 1rem;
   border: 1px solid var(--zcanopy-border);
   background: var(--zcanopy-surface);
@@ -281,6 +284,11 @@ html.dark .hover\:bg-gray-100:hover {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--zcanopy-card-brown);
+  /* Pin the header so body rows scroll beneath it inside the capped wrapper. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--zcanopy-table-head);
 }
 
 .zc-table td {
