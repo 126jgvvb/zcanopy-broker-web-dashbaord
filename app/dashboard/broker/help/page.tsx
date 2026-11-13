@@ -12,17 +12,67 @@ export default function BrokerHelpPage() {
   const [form, setForm] = useState({ name: '', email: '', category: 'General', subject: '', message: '' });
 
   const faqs = [
-    { question: 'What is ZCanopy?', answer: 'ZCanopy is a property listing platform that connects brokers with customers across Uganda.' },
-    { question: 'How do I list a property?', answer: 'Go to Properties, click "Add Property", fill in the details and upload photos. Your listing will be reviewed by our team.' },
-    { question: 'How many properties can I list?', answer: 'The limit depends on your subscription tier:\n\n- Free (Prop) tier: up to 3 properties, 15 photos and 1 video per property.\n- Fibrous tier: up to 8 properties, 25 photos and 2 videos per property.\n- Buttress tier: up to 12 properties, 50 photos and 4 videos per property.\n\nThe limit is applied when you publish, and the current count and limit are shown on the Subscription page.' },
-    { question: 'How do I upgrade my subscription?', answer: 'Visit the Subscription page to view available plans and select the one that fits your needs.' },
-    { question: 'How do I withdraw my earnings?', answer: 'Go to Wallet, enter the amount and your mobile money details, then submit the withdrawal request.\n\nWithdrawals are authorised by the landlord named on the property: when you start a withdrawal we send an OTP to the landlord, and the money only moves once that OTP is confirmed. This protects both sides - a broker cannot move a landlord\'s money without the landlord knowing.' },
-    { question: 'How does the automatic customer refund work?', answer: 'When a customer books a property, the booking fee is not paid out to you straight away. It is held in escrow on your held balance while the customer has a chance to approve the booking.\n\nThere are only two ways the money moves:\n\n1. The customer approves the booking from their dashboard, or the countdown they set expires. When the countdown expires, the platform automatically reverses the payment back to the customer\'s mobile money number and takes the amount off your held balance.\n2. The customer declines the booking before the countdown ends. The amount is reversed straight away.\n\nThe automatic sweep runs every 15 minutes, so a refund normally reaches the customer within about 15 minutes of the countdown ending. You do not have to do anything for it to happen, and you must not refund a customer manually - a manual refund on top of the automatic one pays the customer twice and the amount is still deducted from your held balance.' },
-    { question: 'A refund on a booking keeps failing. What do I do?', answer: 'Some disbursements are rejected by the mobile money provider - an invalid amount, a closed or unverified account, or a number that does not belong to the account holder. The platform retries these automatically on every sweep, so you may see the same refund appearing repeatedly in your transactions.\n\nIf a reversal fails many times, our support team stops the retries so the platform is not spending attempts on a transaction that cannot succeed. The funds stay held on your balance until the case is sorted out by hand.\n\nYou can see the state of every reversal on the Transactions page: a failed reversal shows how many times it has been attempted, and you can use the filter for failed reversals to find them. If one of your bookings is stuck, send us the booking code through the Contact Support tab with the mobile money number that was used, and we will either fix the payout details or release the funds to you.' },
-    { question: 'Where do I see refunds, commissions and payouts?', answer: 'Every payment, refund and commission on the platform is listed on the Transactions page with its date, amount, status and reference number. The Wallet page shows your balance split between the money you can withdraw and the money that is still held in escrow for customer bookings.' },
-    { question: 'How do I change my own password?', answer: 'Go to Settings, scroll to Change Password and request the OTP. We email the code to the address on your broker account, and the new password is only applied once that code is confirmed.' },
-    { question: 'How does a landlord change their password?', answer: 'A landlord account cannot be changed from this console. The landlord has to email support@support.zcanopy.com from the email address on the account and ask for the password to be changed.\n\nSupport verifies the request first - we confirm the landlord\'s identity and the property on file - and only then send the reset instructions, so the change is not applied instantly and can take a little time.\n\nTwo things to keep in mind: the landlord must write from the address registered on the account, and support will never ask anyone for a password. If a customer sends you a request to reset a landlord password, send it to support@support.zcanopy.com instead of doing it yourself.' },
-    { question: 'How do I delete my account?', answer: 'Go to Settings, scroll to Account Actions, type DELETE to confirm, and submit. We email you an OTP and the account is only deleted once that code is confirmed.' },
+    {
+      question: 'What is ZCanopy?',
+      answer:
+        'ZCanopy is a property platform that lets anyone list a property for rent or sale with nothing more than a phone and a few photos - no special skills, no agency experience and no paperwork beyond what the law already asks of a landlord.\n\n' +
+        'The landlord himself can post his own property and deal with the customer directly. That is the point: when the customer talks to the person who actually owns the building, there is no room for a broker to talk the price up, swap the property or take a cut that was never agreed. It removes a whole layer of brokerage, and with it most of the fraud that goes with it.\n\n' +
+        'The wider vision is to connect landlords directly to the people who want to rent or buy. A landlord is always free to post his own property. Anyone else - a broker, a relative, a property manager - can also post a property and earn a small fee, but only when the landlord has authorised them to do so. So the platform does not take the broker out of the picture: it puts the landlord back in charge of who acts on their behalf, and makes the customer deal with the real owner.',
+    },
+    {
+      question: 'How do I list a property?',
+      answer:
+        'Go to Properties, click "Add Property", fill in the details and upload photos. Your listing will be reviewed by our team.',
+    },
+    {
+      question: 'How many properties can I list?',
+      answer:
+        'The limit depends on your subscription tier:\n\n- Free (Prop) tier: up to 3 properties, 15 photos and 1 video per property.\n- Fibrous tier: up to 8 properties, 25 photos and 2 videos per property.\n- Buttress tier: up to 12 properties, 50 photos and 4 videos per property.\n\n' +
+        'The limit is applied when you publish, and the current count and limit are shown on the Subscription page.',
+    },
+    {
+      question: 'How do I upgrade my subscription?',
+      answer:
+        'Visit the Subscription page to view available plans and select the one that fits your needs.',
+    },
+    {
+      question: 'How do I withdraw my earnings?',
+      answer:
+        'Go to Wallet, enter the amount and your mobile money details, then submit the withdrawal request.\n\n' +
+        'Withdrawals are authorised by the landlord named on the property: when you start a withdrawal we send an OTP to the landlord, and the money only moves once that OTP is confirmed. This has been made to avoid frauds in brokerage without the landlord consent.',
+    },
+    {
+      question: 'How does the automatic customer refund work?',
+      answer:
+        'When a customer books a property, the booking fee is not paid out to you straight away. It is held in escrow on your held balance while the customer has a chance to approve the booking.\n\n' +
+        'There are only two ways the money moves:\n\n1. The customer approves the booking from their dashboard, or the countdown they set expires. When the countdown expires, the platform automatically reverses the payment back to the customer\'s mobile money number and takes the amount off your held balance.\n2. The customer declines the booking before the countdown ends. The amount is reversed straight away.\n\n' +
+        'The automatic sweep runs every 15 minutes, so a refund normally reaches the customer within about 15 minutes of the countdown ending. You do not have to do anything for it to happen, and you must not refund a customer manually - a manual refund on top of the automatic one pays the customer twice and the amount is still deducted from your held balance.',
+    },
+    {
+      question: 'Who pays the inspection fee, and what happens if the customer is not happy with the property?',
+      answer:
+        'The inspection fee is paid by the customer, not by you and not by the landlord. It covers the viewing and inspection of the property before the booking is confirmed, and it is collected with the booking fee when the customer books.\n\n' +
+        'If the customer inspects the property and is not satisfied, they can have their funds returned: the money is not released to you, it is reversed back to the customer through the same escrow process, so you are not left holding a fee for a viewing that did not happen.\n\n' +
+        'The practical point for you is that the inspection fee is not yours to keep unless the customer accepted the property, and you should not treat it as income until the booking is approved.',
+    },
+    {
+      question: 'How do I change my own password?',
+      answer:
+        'Go to Settings, scroll to Change Password and request the OTP. We email the code to the address on your broker account, and the new password is only applied once that code is confirmed.',
+    },
+    {
+      question: 'How does a landlord change their phone number?',
+      answer:
+        'A landlord account cannot be changed from this console. The landlord has to email support@support.zcanopy.com from the email address on the account and ask for the phone number to be changed.\n\n' +
+        'Support verifies the request first - we confirm the landlord\'s identity and the property on file - and only then update the number, so the change is not applied instantly and can take a little time.\n\n' +
+        'Two things to keep in mind: the landlord must write from the address registered on the account, and support will never ask anyone for a password or a PIN. If a customer sends you a request to change a landlord phone number, send it to support@support.zcanopy.com instead of doing it yourself.\n\n' +
+        'The phone number matters more than it looks: it is where the booking and the withdrawal OTPs are sent, so if it is wrong the customer and the landlord both get stuck.',
+    },
+    {
+      question: 'How do I delete my account?',
+      answer:
+        'Go to Settings, scroll to Account Actions, type DELETE to confirm, and submit. We email you an OTP and the account is only deleted once that code is confirmed.',
+    },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
