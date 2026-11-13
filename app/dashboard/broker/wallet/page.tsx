@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { webApi, type LandlordVerificationStatus } from '@/lib/api';
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { COLORS } from '@/lib/theme';
 import dynamic from 'next/dynamic';
@@ -179,6 +180,7 @@ export default function BrokerWalletPage() {
       });
       if ((res as any).success || (res as any).newBalance !== undefined) {
         setWithdrawSuccess('Withdrawal initiated successfully');
+        trackEvent(AnalyticsEvents.WithdrawalCompleted);
         setWallet((prev) => (prev ? { ...prev, balance: (res as any).newBalance ?? prev.balance } : prev));
         setAmount('');
         setPhone('');

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { webApi, uploadToSpaces } from '@/lib/api';
 import { IdCard, Eye, EyeOff } from 'lucide-react';
 import { authErrorMessage } from '@/lib/api';
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics';
 
 function IdUpload({
   label,
@@ -94,6 +95,7 @@ export default function SignUpPage() {
             idBackUrl: '',
           });
           if ((data as any).brokerCode) {
+            trackEvent(AnalyticsEvents.SignupCompleted);
             router.push('/login');
           } else {
             setError('Google sign-up failed. Please try again.');
@@ -125,6 +127,7 @@ export default function SignUpPage() {
   }
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    trackEvent(AnalyticsEvents.SignupStarted);
     setError('');
 
     if (!idFront || !idBack) {
@@ -175,6 +178,7 @@ export default function SignUpPage() {
         return;
       }
 
+      trackEvent(AnalyticsEvents.SignupCompleted);
       setBrokerCode((verifyData as any).brokerCode);
       setStep('welcome');
     } catch (err) {
