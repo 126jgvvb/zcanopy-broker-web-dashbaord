@@ -26,6 +26,10 @@ export default function SignUpPage() {
 
   const [otp, setOtp] = useState({ email: '', phone: '' });
   const [brokerCode, setBrokerCode] = useState('');
+  // The details the user actually submitted (read from the DOM via FormData),
+  // used as the source of truth for the OTP and login steps. React state can
+  // lag behind browser autofill, so the later steps must not read form state.
+  const submittedRef = useRef<{ fullName: string; email: string; phoneNumber: string } | null>(null);
   const [error, setError] = useState('');
   const [resendMessage, setResendMessage] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
@@ -33,6 +37,8 @@ export default function SignUpPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleReady, setGoogleReady] = useState(false);
+  const fullNameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
   // The Google ID token used to link the new broker account to Google.
   const [googleCredential, setGoogleCredential] = useState<string | null>(null);
 
@@ -94,10 +100,16 @@ export default function SignUpPage() {
           // actual registration (including OTP verification) happens when the
           // form is submitted, so a Google-linked broker is created through
           // the same flow as an email/password one and can sign in either way.
+          //
+          // IMPORTANT: never clobber a value the user (or the browser autofill)
+          // already put in the inputs — read the current DOM values and only
+          // fill the fields that are empty.
+          const curName = fullNameRef.current?.value.trim() ?? '';
+          const curEmail = emailRef.current?.value.trim() ?? '';
           setForm((prev) => ({
             ...prev,
-            fullName: prev.fullName || profile.name,
-            email: prev.email || profile.email,
+            fullName: curName || prev.fullName || profile.name,
+            email: curEmail || prev.email || profile.email,
           }));
           setGoogleCredential(response.credential);
           setResendMessage('Google account linked — enter your phone number and press Continue to finish registering.');
@@ -133,6 +145,7 @@ export default function SignUpPage() {
       email: String(fd.get('email') || '').trim(),
       phoneNumber: String(fd.get('phoneNumber') || '').trim(),
     };
+    submittedRef.current = submitted;
     setForm((prev) => ({ ...prev, ...submitted }));
 
     setLoading(true);
@@ -167,9 +180,10 @@ export default function SignUpPage() {
     setError('');
     setLoading(true);
     try {
+      const submitted = submittedRef.current ?? { email: form.email, phoneNumber: form.phoneNumber, fullName: form.fullName };
       const verifyData = await webApi.verifyBrokerOtp({
-        email: form.email,
-        phoneNumber: form.phoneNumber,
+        email: submitted.email,
+        phoneNumber: submitted.phoneNumber,
         emailCode: otp.email,
         phoneCode: otp.phone,
       });
@@ -192,9 +206,10 @@ export default function SignUpPage() {
     setError('');
     setResendLoading(true);
     try {
+      const submitted = submittedRef.current ?? { email: form.email, phoneNumber: form.phoneNumber, fullName: form.fullName };
       const sendData: any = await webApi.sendBrokerOtp({
-        email: form.email,
-        phoneNumber: form.phoneNumber,
+        email: submitted.email,
+        phoneNumber: submitted.phoneNumber,
       });
       if (!sendData?.success) {
         setResendMessage(sendData?.message || 'Could not resend codes.');
@@ -235,7 +250,10 @@ export default function SignUpPage() {
         return;
       }
 
-      const loginData = await webApi.brokerEmailLogin(form.email, setupPassword);
+      const loginData = await webApi.brokerEmailLogin(
+        submittedRef.current?.email ?? form.email,
+        setupPassword,
+      );
       
       localStorage.setItem('zcanopy_token', (loginData as any).token);
       localStorage.setItem('zcanopy_role', 'broker');
@@ -280,12 +298,12 @@ export default function SignUpPage() {
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Full Name</label>
-              <input type="text" name="fullName" autoComplete="name" value={form.fullName} onChange={update('fullName')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
+              <input ref={fullNameRef} type="text" name="fullName" autoComplete="name" value={form.fullName} onChange={update('fullName')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Email</label>
-              <input type="email" name="email" autoComplete="email" value={form.email} onChange={update('email')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
+              <input ref={emailRef} type="email" name="email" autoComplete="email" value={form.email} onChange={update('email')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
             </div>
 
             <div>
