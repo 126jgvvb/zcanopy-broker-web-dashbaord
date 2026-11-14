@@ -56,6 +56,25 @@ export default function SignUpPage() {
     }
   }
 
+  // The GIS script is shared with the landing page, so on client-side
+  // navigation it is often already loaded before this page mounts and
+  // next/script's onLoad never fires again. Poll for availability so the
+  // button renders without a reload.
+  useEffect(() => {
+    if (googleReady) return;
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts += 1;
+      if (window.google?.accounts?.id) {
+        clearInterval(timer);
+        setGoogleReady(true);
+      } else if (attempts >= 100) {
+        clearInterval(timer);
+      }
+    }, 100);
+    return () => clearInterval(timer);
+  }, [googleReady]);
+
   useEffect(() => {
     if (!googleReady) return;
     if (!window.google?.accounts?.id) return;
