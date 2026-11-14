@@ -269,9 +269,8 @@ export function authErrorMessage(err: unknown, subject = 'email or password'): s
     return 'Unable to reach our servers. Please check your internet connection and try again.';
   }
   if (kind === 'server') {
-  //  return 'Our servers are unavailable right now. Please try again in a few moments.';
-    return 'Your credentials might be incorrect. Please try again.';
-}
+    return 'Our servers are unavailable right now. Please try again in a few moments.';
+  }
   if (kind === 'credentials') {
     return `Invalid ${subject}. Please check your details and try again.`;
   }
