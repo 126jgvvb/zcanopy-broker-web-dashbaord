@@ -151,11 +151,9 @@ export default function SignUpPage() {
         setError((data as any)?.message || 'Registration failed');
         return;
       }
-      setResendMessage(
-        googleCredential
-          ? 'A verification code was sent to your phone — your email was verified by Google.'
-          : 'Verification codes sent to your email and phone.'
-      );
+      // The OTP screen prompt already tells the broker the codes are on the
+      // way; resendMessage is reserved for resend feedback so it isn't repeated.
+      setResendMessage('');
       setStep('otp');
     } catch (err) {
       setError(authErrorMessage(err, 'registration details'));
@@ -336,7 +334,6 @@ export default function SignUpPage() {
             >
               {resendLoading ? 'Resending...' : "Didn't get the codes? Resend"}
             </button>
-            {resendMessage && <p className="text-xs text-gray-500">{resendMessage}</p>}
           </form>
         )}
 
