@@ -120,17 +120,27 @@ export default function SignUpPage() {
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handleDetailsSubmit = async (e: React.FormEvent) => {
+  const handleDetailsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     trackEvent(AnalyticsEvents.SignupStarted);
     setError('');
 
+    // Browser autofill can fill the inputs without firing React onChange, so
+    // read the actual DOM values via FormData instead of the stale state.
+    const fd = new FormData(e.currentTarget);
+    const submitted = {
+      fullName: String(fd.get('fullName') || '').trim(),
+      email: String(fd.get('email') || '').trim(),
+      phoneNumber: String(fd.get('phoneNumber') || '').trim(),
+    };
+    setForm((prev) => ({ ...prev, ...submitted }));
+
     setLoading(true);
     try {
       const data = await webApi.registerBroker({
-        fullName: form.fullName,
-        email: form.email,
-        phoneNumber: form.phoneNumber,
+        fullName: submitted.fullName,
+        email: submitted.email,
+        phoneNumber: submitted.phoneNumber,
         ...(googleCredential ? { googleId: googleCredential } : {}),
         // ID verification images are no longer collected at signup: the
         // landlord integration verifies brokers instead.
@@ -141,7 +151,11 @@ export default function SignUpPage() {
         setError((data as any)?.message || 'Registration failed');
         return;
       }
-      setResendMessage('Verification codes sent to your email and phone.');
+      setResendMessage(
+        googleCredential
+          ? 'A verification code was sent to your phone — your email was verified by Google.'
+          : 'Verification codes sent to your email and phone.'
+      );
       setStep('otp');
     } catch (err) {
       setError(authErrorMessage(err, 'registration details'));
@@ -158,7 +172,8 @@ export default function SignUpPage() {
       const verifyData = await webApi.verifyBrokerOtp({
         email: form.email,
         phoneNumber: form.phoneNumber,
-        emailCode: otp.email,
+        // Google-signed-up brokers verify only their phone; Google verifies the email.
+        ...(googleCredential ? {} : { emailCode: otp.email }),
         phoneCode: otp.phone,
       });
       if (!(verifyData as any).success) {
@@ -188,7 +203,9 @@ export default function SignUpPage() {
         setResendMessage(sendData?.message || 'Could not resend codes.');
         return;
       }
-      setResendMessage('New codes sent. Check your email and phone.');
+      setResendMessage(
+        googleCredential ? 'A new code was sent to your phone.' : 'New codes sent. Check your email and phone.'
+      );
       setOtp({ email: '', phone: '' });
     } catch (err) {
       setResendMessage(authErrorMessage(err, 'verification code'));
@@ -268,17 +285,17 @@ export default function SignUpPage() {
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Full Name</label>
-              <input type="text" value={form.fullName} onChange={update('fullName')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
+              <input type="text" name="fullName" autoComplete="name" value={form.fullName} onChange={update('fullName')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Email</label>
-              <input type="email" value={form.email} onChange={update('email')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
+              <input type="email" name="email" autoComplete="email" value={form.email} onChange={update('email')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Phone Number</label>
-              <input type="tel" value={form.phoneNumber} onChange={update('phoneNumber')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
+              <input type="tel" name="phoneNumber" autoComplete="tel" value={form.phoneNumber} onChange={update('phoneNumber')} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
             </div>
 
             {error && <p className="text-xs text-red-600">{error}</p>}
@@ -291,12 +308,18 @@ export default function SignUpPage() {
 
         {step === 'otp' && (
           <form onSubmit={handleOtpSubmit} className="space-y-3">
-            <p className="text-xs text-gray-500">Enter OTPs sent to your email and phone.</p>
+            <p className="text-xs text-gray-500">
+              {googleCredential
+                ? 'Enter the code sent to your phone. Your email was verified by Google.'
+                : 'Enter OTPs sent to your email and phone.'}
+            </p>
             {resendMessage && <p className="text-xs text-gray-500">{resendMessage}</p>}
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Email OTP</label>
-              <input type="text" value={otp.email} onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
-            </div>
+            {!googleCredential && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-700">Email OTP</label>
+                <input type="text" value={otp.email} onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Phone OTP</label>
               <input type="text" value={otp.phone} onChange={(e) => setOtp((p) => ({ ...p, phone: e.target.value }))} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
