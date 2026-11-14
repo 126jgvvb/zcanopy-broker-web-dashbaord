@@ -33,6 +33,28 @@ export default function SignUpPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleReady, setGoogleReady] = useState(false);
+  // The Google ID token used to link the new broker account to Google.
+  const [googleCredential, setGoogleCredential] = useState<string | null>(null);
+
+  /** Decodes the unsigned Google ID token for display pre-fill. Verification
+   *  always happens server-side when the account is created. */
+  function decodeGoogleCredential(credential: string) {
+    try {
+      const parts = credential.split('.');
+      if (parts.length !== 3) return null;
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      const payload = JSON.parse(atob(padded));
+      const givenName = payload.given_name || '';
+      const familyName = payload.family_name || '';
+      return {
+        name: payload.name || `${givenName} ${familyName}`.trim(),
+        email: payload.email || '',
+      };
+    } catch {
+      return null;
+    }
+  }
 
   useEffect(() => {
     if (!googleReady) return;
@@ -43,20 +65,23 @@ export default function SignUpPage() {
         if (!response.credential) return;
         setGoogleLoading(true);
         try {
-          const data = await webApi.registerBroker({
-            fullName: '',
-            email: '',
-            phoneNumber: '',
-            googleId: response.credential,
-            idFrontUrl: '',
-            idBackUrl: '',
-          });
-          if ((data as any).brokerCode) {
-            trackEvent(AnalyticsEvents.SignupCompleted);
-            router.push('/login');
-          } else {
+          const profile = decodeGoogleCredential(response.credential);
+          if (!profile) {
             setError('Google sign-up failed. Please try again.');
+            return;
           }
+          // Google only provides name + email (no phone number is exposed).
+          // Pre-fill what we can and let the broker enter their phone — the
+          // actual registration (including OTP verification) happens when the
+          // form is submitted, so a Google-linked broker is created through
+          // the same flow as an email/password one and can sign in either way.
+          setForm((prev) => ({
+            ...prev,
+            fullName: prev.fullName || profile.name,
+            email: prev.email || profile.email,
+          }));
+          setGoogleCredential(response.credential);
+          setResendMessage('Google account linked — enter your phone number and press Continue to finish registering.');
         } catch {
           setError('Google sign-up failed. Please try again.');
         } finally {
@@ -87,6 +112,7 @@ export default function SignUpPage() {
         fullName: form.fullName,
         email: form.email,
         phoneNumber: form.phoneNumber,
+        ...(googleCredential ? { googleId: googleCredential } : {}),
         // ID verification images are no longer collected at signup: the
         // landlord integration verifies brokers instead.
         idFrontUrl: '',
