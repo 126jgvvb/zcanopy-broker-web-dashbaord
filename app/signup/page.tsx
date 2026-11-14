@@ -151,8 +151,8 @@ export default function SignUpPage() {
         setError((data as any)?.message || 'Registration failed');
         return;
       }
-      // The OTP screen prompt already tells the broker the codes are on the
-      // way; resendMessage is reserved for resend feedback so it isn't repeated.
+      // Codes were just sent; the OTP screen prompt already says so, so no
+      // resendMessage is set here.
       setResendMessage('');
       setStep('otp');
     } catch (err) {
@@ -170,8 +170,7 @@ export default function SignUpPage() {
       const verifyData = await webApi.verifyBrokerOtp({
         email: form.email,
         phoneNumber: form.phoneNumber,
-        // Google-signed-up brokers verify only their phone; Google verifies the email.
-        ...(googleCredential ? {} : { emailCode: otp.email }),
+        emailCode: otp.email,
         phoneCode: otp.phone,
       });
       if (!(verifyData as any).success) {
@@ -201,9 +200,7 @@ export default function SignUpPage() {
         setResendMessage(sendData?.message || 'Could not resend codes.');
         return;
       }
-      setResendMessage(
-        googleCredential ? 'A new code was sent to your phone.' : 'New codes sent. Check your email and phone.'
-      );
+      setResendMessage('New codes sent. Check your email and phone.');
       setOtp({ email: '', phone: '' });
     } catch (err) {
       setResendMessage(authErrorMessage(err, 'verification code'));
@@ -306,18 +303,12 @@ export default function SignUpPage() {
 
         {step === 'otp' && (
           <form onSubmit={handleOtpSubmit} className="space-y-3">
-            <p className="text-xs text-gray-500">
-              {googleCredential
-                ? 'Enter the code sent to your phone. Your email was verified by Google.'
-                : 'Enter OTPs sent to your email and phone.'}
-            </p>
+            <p className="text-xs text-gray-500">Enter the OTPs sent to your email and phone.</p>
             {resendMessage && <p className="text-xs text-gray-500">{resendMessage}</p>}
-            {!googleCredential && (
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Email OTP</label>
-                <input type="text" value={otp.email} onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
-              </div>
-            )}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-700">Email OTP</label>
+              <input type="text" value={otp.email} onChange={(e) => setOtp((p) => ({ ...p, email: e.target.value }))} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
+            </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-700">Phone OTP</label>
               <input type="text" value={otp.phone} onChange={(e) => setOtp((p) => ({ ...p, phone: e.target.value }))} className="w-full rounded-lg border border-[var(--zcanopy-border)] bg-white/70 px-3 py-2 text-sm shadow-sm" required />
