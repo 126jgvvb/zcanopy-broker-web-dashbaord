@@ -127,6 +127,13 @@ export default function BrokerWalletPage() {
     .filter((b) => b.fundsReleased)
     .reduce((sum, b) => sum + Number(b.escrowAmount || 0), 0);
 
+  // Minimum enforced in three places: the input, the submit handler, and
+  // the broker service — this one of them.
+  const minimumWithdrawal = wallet?.minimumWithdrawal ?? 10000;
+  const numericAmount = Number(amount);
+  const amountBelowMinimum =
+    amount !== '' && Number.isFinite(numericAmount) && numericAmount > 0 && numericAmount < minimumWithdrawal;
+
   // With exactly one landlord the selection is automatic; with several, the
   // broker must choose which landlord receives the withdrawal OTP.
   const effectiveSelectedLandlordId =
@@ -188,8 +195,8 @@ export default function BrokerWalletPage() {
       setWithdrawError('Please enter a valid amount');
       return;
     }
-    if (withdrawAmount < (wallet.minimumWithdrawal ?? 10000)) {
-      setWithdrawError(`Minimum withdrawal is UGX ${(wallet.minimumWithdrawal ?? 10000).toLocaleString()}`);
+    if (withdrawAmount < minimumWithdrawal) {
+      setWithdrawError(`Minimum withdrawal is UGX ${minimumWithdrawal.toLocaleString()}`);
       return;
     }
     if (withdrawAmount > (wallet.balance ?? 0)) {
@@ -437,13 +444,28 @@ export default function BrokerWalletPage() {
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
+                className={`w-full rounded-xl border bg-white px-4 py-2.5 shadow-sm transition-colors focus:outline-none ${
+                  amountBelowMinimum
+                    ? 'border-red-400 focus:border-red-500'
+                    : 'border-gray-200 focus:border-[var(--zcanopy-primary)]'
+                }`}
                 placeholder="Enter amount"
                 required
-                min={(wallet?.minimumWithdrawal ?? 10000)}
+                min={minimumWithdrawal}
                 max={wallet?.balance || 0}
                 disabled={!canWithdraw}
+                aria-invalid={amountBelowMinimum}
+                aria-describedby="min-withdrawal-hint"
               />
+              {amountBelowMinimum ? (
+                <p id="min-withdrawal-hint" className="mt-1 text-xs font-medium text-red-600">
+                  Minimum withdrawal is UGX {minimumWithdrawal.toLocaleString()}.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-400">
+                  Minimum withdrawal is UGX {minimumWithdrawal.toLocaleString()}.
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Mobile Number</label>
@@ -522,7 +544,7 @@ export default function BrokerWalletPage() {
             )}
             <button
               type="submit"
-              disabled={withdrawing || !canWithdraw || !otpSent}
+              disabled={withdrawing || !canWithdraw || !otpSent || amountBelowMinimum}
               className="w-full rounded-xl bg-[var(--zcanopy-primary)] py-2.5 text-white shadow-md transition-all hover:bg-[var(--zcanopy-primary-alt)] disabled:opacity-50"
             >
               {withdrawing ? 'Processing...' : 'Withdraw'}
