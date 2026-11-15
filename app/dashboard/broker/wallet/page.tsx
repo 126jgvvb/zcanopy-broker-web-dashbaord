@@ -352,17 +352,17 @@ export default function BrokerWalletPage() {
                 className="rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3"
               >
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 shrink-0 text-green-600" />
-                  <p className="truncate text-sm font-medium" style={{ color: COLORS.cardBrown }}>
+                  <ShieldCheck className="h-5 w-5 shrink-0 text-green-600" />
+                  <p className="truncate text-base font-semibold" style={{ color: COLORS.cardBrown }}>
                     {landlord.fullName}
                   </p>
                 </div>
-                <div className="mt-2 space-y-0.5 text-xs text-gray-500">
+                <div className="mt-2 space-y-1 text-sm text-gray-500">
                   <p>NIN: {landlord.ninMasked}</p>
                   <p>{landlord.mzoDistrict} · {landlord.tenureType}</p>
                   {landlord.instrumentNumber ? <p>Instrument: {landlord.instrumentNumber}</p> : null}
                   {landlord.verifiedAt ? (
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-xs text-gray-400">
                       Verified {new Date(landlord.verifiedAt).toLocaleDateString()}
                     </p>
                   ) : null}
@@ -375,10 +375,10 @@ export default function BrokerWalletPage() {
         <div className="mt-3 flex items-start gap-2 rounded-lg border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--zcanopy-muted)]" />
           <p className="text-xs leading-relaxed text-[var(--zcanopy-muted)]">
-            You can register more than one landlord — for example, one per property you list — and only
-            admin-approved landlords appear here. Each withdrawal OTP is sent to the landlord you select for that
-            withdrawal, on the contact details recorded on their verified record. The broker never receives the OTP;
-            the landlord must give it to you to complete the withdrawal.
+            You can register more than one landlord — if the property does not belong to the one currently registered —
+            and only admin-approved landlords appear here. Each withdrawal OTP is sent to the landlord you select for that
+            withdrawal, on the contact details recorded on their verified record. The landlord must give it to you to
+            complete the withdrawal.
           </p>
         </div>
       </Panel>
