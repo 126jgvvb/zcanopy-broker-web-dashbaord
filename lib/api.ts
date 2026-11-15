@@ -18,6 +18,16 @@ export interface LandlordVerificationStatus {
   } | null;
 }
 
+export interface VerifiedLandlord {
+  verificationId: string;
+  fullName: string;
+  ninMasked: string;
+  mzoDistrict: string;
+  tenureType: string;
+  instrumentNumber?: string;
+  verifiedAt?: string;
+}
+
 export interface PresignResponse {
   uploadUrl: string;
   key: string;
@@ -558,8 +568,15 @@ export const webApi = {
   getLandlordDetailsStatus: (token: string) =>
     apiFetch<LandlordVerificationStatus>('/web/broker/landlord-details/status', { token, fallback: { status: 'unsubmitted' } }),
 
-  requestWithdrawalOtp: (token: string) =>
-    apiFetch('/web/broker/withdraw/request-otp', { method: 'POST', token, body: {}}),
+  brokerLandlords: (token: string) =>
+    apiFetch<{ landlords: VerifiedLandlord[] }>('/web/broker/landlords', { token }),
+
+  requestWithdrawalOtp: (token: string, verificationId?: string) =>
+    apiFetch('/web/broker/withdraw/request-otp', {
+      method: 'POST',
+      token,
+      body: verificationId ? { verificationId } : {},
+    }),
 
   brokerLogout: (token: string) =>
     apiFetch('/web/broker/logout', { method: 'POST', token, body: {}}),

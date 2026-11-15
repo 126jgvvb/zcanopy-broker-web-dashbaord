@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { webApi, type LandlordVerificationStatus } from '@/lib/api';
+import { webApi, type LandlordVerificationStatus, type VerifiedLandlord } from '@/lib/api';
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics';
 import { LoadingState, ErrorState, Panel } from '@/components/ui';
 import { COLORS } from '@/lib/theme';
@@ -13,7 +13,7 @@ const LandlordTitleSearchForm = dynamic(
   () => import('@/components/LandlordTitleSearchForm'),
   { ssr: false, loading: () => <p className="text-sm text-gray-500">Loading the verification form...</p> },
 );
-import { AlertTriangle, CheckCircle, KeyRound } from 'lucide-react';
+import { AlertTriangle, CheckCircle, KeyRound, Info, ShieldCheck } from 'lucide-react';
 
 interface EscrowBooking {
   id: string;
@@ -49,6 +49,14 @@ export default function BrokerWalletPage() {
   const [provider, setProvider] = useState('MTN');
   const [payeeName, setPayeeName] = useState('');
   const [landlordStatus, setLandlordStatus] = useState<LandlordVerificationStatus | null>(null);
+  // The verified landlords this broker may represent — see "Your Landlords".
+  const [landlords, setLandlords] = useState<VerifiedLandlord[]>([]);
+  // Which landlord the withdrawal OTP should go to (required when there is more than one).
+  const [selectedLandlordId, setSelectedLandlordId] = useState('');
+  // When true, the verification form is shown fresh so the broker can add another landlord.
+  const [addingLandlord, setAddingLandlord] = useState(false);
+  // The landlord the OTP was sent to, for display after "Send OTP".
+  const [otpTargetName, setOtpTargetName] = useState('');
   // The broker's bookings, used to show what the held amount is made of.
   const [bookings, setBookings] = useState<EscrowBooking[]>([]);
 
@@ -66,6 +74,15 @@ export default function BrokerWalletPage() {
     }
   };
 
+  const reloadLandlords = async (token: string) => {
+    try {
+      const data: any = await webApi.brokerLandlords(token);
+      setLandlords(data?.landlords || []);
+    } catch {
+      setLandlords([]);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('zcanopy_token');
     if (!token) return;
@@ -75,12 +92,14 @@ export default function BrokerWalletPage() {
       webApi.brokerWalletTransactions(token),
       webApi.getLandlordDetailsStatus(token).catch(() => ({ status: 'unsubmitted' })),
       webApi.brokerBookings(token).catch(() => ({ bookings: [] })),
+      webApi.brokerLandlords(token).catch(() => ({ landlords: [] })),
     ])
-      .then(([walletData, txData, landlordData, bookingsData]: any) => {
+      .then(([walletData, txData, landlordData, bookingsData, landlordsData]: any) => {
         setWallet(walletData);
         setTransactions(txData.transactions || []);
         setLandlordStatus(landlordData || { status: 'unsubmitted' });
         setBookings(bookingsData?.bookings || []);
+        setLandlords(landlordsData?.landlords || []);
       })
       .catch(() => setError('Failed to load wallet data'))
       .finally(() => setLoading(false));
@@ -108,6 +127,14 @@ export default function BrokerWalletPage() {
     .filter((b) => b.fundsReleased)
     .reduce((sum, b) => sum + Number(b.escrowAmount || 0), 0);
 
+  // With exactly one landlord the selection is automatic; with several, the
+  // broker must choose which landlord receives the withdrawal OTP.
+  const effectiveSelectedLandlordId =
+    landlords.length === 1 ? landlords[0].verificationId : selectedLandlordId;
+  const selectedLandlord =
+    landlords.find((l) => l.verificationId === effectiveSelectedLandlordId) || null;
+  const requiresLandlordChoice = landlords.length > 1;
+
   const handleSendOtp = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setWithdrawError('');
@@ -123,10 +150,11 @@ export default function BrokerWalletPage() {
       const token = localStorage.getItem('zcanopy_token');
       if (!token) return;
 
-      const res: any = await webApi.requestWithdrawalOtp(token);
+      const res: any = await webApi.requestWithdrawalOtp(token, effectiveSelectedLandlordId || undefined);
       if (res?.success) {
         setOtpSent(true);
-        setWithdrawSuccess(res.message || 'An OTP has been sent to the landlord. Enter it to complete the withdrawal.');
+        setOtpTargetName(selectedLandlord?.fullName || 'the landlord');
+        setWithdrawSuccess(res.message || `An OTP has been sent to ${selectedLandlord?.fullName || 'the landlord'}. Enter it to complete the withdrawal.`);
       } else {
         setWithdrawError(res?.message || 'Failed to send OTP.');
       }
@@ -271,14 +299,88 @@ export default function BrokerWalletPage() {
         </Panel>
       </div>
 
-      <Panel title="Landlord &amp; Title Verification">
+      <Panel
+        title="Landlord &amp; Title Verification"
+        action={
+          landlords.length > 0 && !addingLandlord ? (
+            <button
+              type="button"
+              onClick={() => setAddingLandlord(true)}
+              className="text-xs font-semibold hover:underline"
+              style={{ color: COLORS.primary }}
+            >
+              + Add another landlord
+            </button>
+          ) : addingLandlord ? (
+            <button
+              type="button"
+              onClick={() => setAddingLandlord(false)}
+              className="text-xs font-semibold hover:underline"
+              style={{ color: COLORS.primary }}
+            >
+              Cancel adding
+            </button>
+          ) : undefined
+        }
+      >
         <LandlordTitleSearchForm
-          initialStatus={landlordStatus}
+          initialStatus={addingLandlord ? null : landlordStatus}
           onSubmitted={() => {
+            setAddingLandlord(false);
             const token = localStorage.getItem('zcanopy_token');
-            if (token) reloadLandlordStatus(token);
+            if (token) {
+              reloadLandlordStatus(token);
+              reloadLandlords(token);
+            }
           }}
         />
+      </Panel>
+
+      <Panel title="Your Landlords">
+        {landlords.length === 0 ? (
+          <div>
+            <p className="text-sm text-gray-500">
+              You have no verified landlords yet. Add at least one in the verification form above and get it approved —
+              every withdrawal needs a verified landlord to authorise it.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {landlords.map((landlord) => (
+              <div
+                key={landlord.verificationId}
+                className="rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-green-600" />
+                  <p className="truncate text-sm font-medium" style={{ color: COLORS.cardBrown }}>
+                    {landlord.fullName}
+                  </p>
+                </div>
+                <div className="mt-2 space-y-0.5 text-xs text-gray-500">
+                  <p>NIN: {landlord.ninMasked}</p>
+                  <p>{landlord.mzoDistrict} · {landlord.tenureType}</p>
+                  {landlord.instrumentNumber ? <p>Instrument: {landlord.instrumentNumber}</p> : null}
+                  {landlord.verifiedAt ? (
+                    <p className="text-[10px] text-gray-400">
+                      Verified {new Date(landlord.verifiedAt).toLocaleDateString()}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Guidance for the broker about the landlord/withdrawal mechanism */}
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-[var(--zcanopy-border)] bg-[var(--zcanopy-surface)] p-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--zcanopy-muted)]" />
+          <p className="text-xs leading-relaxed text-[var(--zcanopy-muted)]">
+            You can register more than one landlord — for example, one per property you list — and only
+            admin-approved landlords appear here. Each withdrawal OTP is sent to the landlord you select for that
+            withdrawal, on the contact details recorded on their verified record. The broker never receives the OTP;
+            the landlord must give it to you to complete the withdrawal.
+          </p>
+        </div>
       </Panel>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -296,13 +398,31 @@ export default function BrokerWalletPage() {
               <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
               <div className="space-y-2">
                 <p className="text-sm text-blue-700">
-                  Every withdrawal requires an OTP sent to the landlord (phone number or email on file).
-                  Request the code, obtain it from the landlord, then complete the withdrawal.
+                  Every withdrawal requires an OTP sent to the landlord (phone number or email on file). Request the
+                  code, obtain it from the landlord, then complete the withdrawal.
                 </p>
+                {requiresLandlordChoice ? (
+                  <select
+                    value={selectedLandlordId}
+                    onChange={(e) => setSelectedLandlordId(e.target.value)}
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-[var(--zcanopy-primary)]"
+                  >
+                    <option value="">Select which landlord to send the OTP to…</option>
+                    {landlords.map((landlord) => (
+                      <option key={landlord.verificationId} value={landlord.verificationId}>
+                        {landlord.fullName} — {landlord.ninMasked}
+                      </option>
+                    ))}
+                  </select>
+                ) : selectedLandlord ? (
+                  <p className="text-xs text-blue-800">
+                    The OTP will be sent to <strong>{selectedLandlord.fullName}</strong>.
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   onClick={handleSendOtp}
-                  disabled={otpSending}
+                  disabled={otpSending || (requiresLandlordChoice && !selectedLandlordId)}
                   className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
                   style={{ backgroundColor: COLORS.primary }}
                 >
@@ -363,7 +483,9 @@ export default function BrokerWalletPage() {
             </div>
             {otpSent && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Landlord OTP</label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Landlord OTP{otpTargetName ? ` — sent to ${otpTargetName}` : ''}
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -377,6 +499,19 @@ export default function BrokerWalletPage() {
                 <p className="mt-1 text-xs text-[var(--zcanopy-muted)]">
                   Sent to the landlord&apos;s phone number or email on file. Valid for a few minutes.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpSent(false);
+                    setOtp('');
+                    setOtpTargetName('');
+                    setWithdrawSuccess('');
+                  }}
+                  className="mt-1.5 text-xs font-semibold hover:underline"
+                  style={{ color: COLORS.primary }}
+                >
+                  Send the OTP to a different landlord
+                </button>
               </div>
             )}
             {withdrawError && <p className="text-sm text-red-600">{withdrawError}</p>}
