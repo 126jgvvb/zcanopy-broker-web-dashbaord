@@ -360,7 +360,6 @@ export default function BrokerWalletPage() {
                 <div className="mt-2 space-y-1 text-sm text-gray-500">
                   <p>NIN: {landlord.ninMasked}</p>
                   <p>{landlord.mzoDistrict} · {landlord.tenureType}</p>
-                  {landlord.instrumentNumber ? <p>Instrument: {landlord.instrumentNumber}</p> : null}
                   {landlord.verifiedAt ? (
                     <p className="text-xs text-gray-400">
                       Verified {new Date(landlord.verifiedAt).toLocaleDateString()}

@@ -24,7 +24,6 @@ export interface VerifiedLandlord {
   ninMasked: string;
   mzoDistrict: string;
   tenureType: string;
-  instrumentNumber?: string;
   verifiedAt?: string;
 }
 
