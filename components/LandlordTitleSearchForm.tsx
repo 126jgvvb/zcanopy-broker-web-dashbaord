@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ShieldCheck,
-  Info,
   UserRound,
   Landmark,
   MapPin,
@@ -712,7 +711,7 @@ export default function LandlordTitleSearchForm({
         <p className="text-sm leading-relaxed text-[var(--zcanopy-card-brown)]">
           These details are used to confirm that you have authorization from the landlord. We verify them
           against the National Identification and Registration Authority (NIRA) and the Uganda National Land
-          Information System (UgNLIS) before your listings go live and payouts are unlocked.
+          Information System (UgNLIS) before payouts are unlocked.
         </p>
       </div>
 
@@ -1354,11 +1353,6 @@ export default function LandlordTitleSearchForm({
             {submitting ? 'Submitting…' : 'Save & Generate Title Search Request'}
           </button>
 
-          <p className="flex items-start gap-1.5 text-xs text-[var(--zcanopy-muted)]">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            On submit, a structured JSON payload is generated for database ingestion and UgNLIS title-deed PDF
-            parsing.
-          </p>
         </form>
       )}
     </div>
