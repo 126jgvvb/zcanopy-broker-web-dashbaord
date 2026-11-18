@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import PropertyCard from '@/components/PropertyCard';
 import StandardBookingPriceSelect from '@/components/StandardBookingPriceSelect';
 import { webApi, uploadToSpaces } from '@/lib/api';
@@ -136,6 +137,14 @@ export default function BrokerPropertiesPage() {
       maxVideoSizeMB: limits.maxVideoSizeMB || 500,
     } as TierLimits,
   };
+
+  // Upload slots according to the active plan. Only gate when the subscription
+  // details resolved (otherwise we cannot know the true limit); the backend
+  // enforces the limit as well.
+  const maxProperties = tier.limits.maxProperties;
+  const subscriptionResolved = Boolean((subscriptionQuery.data as any)?.limits);
+  const limitReached = subscriptionResolved && properties.length >= maxProperties;
+  const remainingSlots = Math.max(0, maxProperties - properties.length);
 
   const [search, setSearch] = useState('');
   const [propertyType, setPropertyType] = useState('');
@@ -464,6 +473,15 @@ export default function BrokerPropertiesPage() {
     const token = localStorage.getItem('zcanopy_token');
     if (!token) return;
 
+    // Hard gate, in case the form was opened before the subscription resolved.
+    if (limitReached) {
+      setUploadDialog({
+        type: 'error',
+        message: `Your ${tier.name.toUpperCase()} plan allows ${maxProperties} properties. Remove one or upgrade your plan to add more.`,
+      });
+      return;
+    }
+
     // Validate price and fee before submitting
     if (!validatePriceAndFee(createForm.price, createForm.brokerBookingFee)) {
       return;
@@ -543,15 +561,54 @@ export default function BrokerPropertiesPage() {
           <h2 className="mt-1 text-3xl text-[var(--zcanopy-card-brown)] sm:text-4xl">My Properties</h2>
           <p className="mt-1 text-[var(--zcanopy-muted)]">Manage and refine your portfolio.</p>
         </div>
-        <button
-          onClick={() => setShowCreate(!showCreate)}
-          className="rounded-xl bg-[var(--zcanopy-primary)] px-5 py-2.5 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)]"
-        >
-          {showCreate ? 'Cancel' : 'Add Property'}
-        </button>
+        {limitReached ? (
+          <span className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-800">
+            {tier.name.toUpperCase()} limit reached · {properties.length}/{maxProperties}
+          </span>
+        ) : (
+          <button
+            onClick={() => setShowCreate(!showCreate)}
+            className="rounded-xl bg-[var(--zcanopy-primary)] px-5 py-2.5 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)]"
+          >
+            {showCreate ? 'Cancel' : 'Add Property'}
+          </button>
+        )}
       </div>
 
-      {showCreate && (
+      {limitReached && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:p-5"
+        >
+          <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-amber-600" />
+          <div className="min-w-0">
+            <p className="text-base font-bold text-amber-900">
+              Your {tier.name.toUpperCase()} plan limit of {maxProperties} properties is reached
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              You cannot upload another property on this plan. To add more, remove an existing listing below, or
+              upgrade to a plan with more room.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href="/dashboard/broker/subscription"
+                className="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow transition-all hover:opacity-90"
+                style={{ backgroundColor: COLORS.primary }}
+              >
+                Upgrade plan
+              </Link>
+              <a
+                href="#properties-list"
+                className="rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition-all hover:bg-amber-100"
+              >
+                Remove a property
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreate && !limitReached && (
         <Panel title="Add New Property">
           <div className="mb-4 rounded-2xl border border-[var(--zcanopy-border)] bg-[color-mix(in_srgb,var(--zcanopy-accent-gold)_10%,transparent)] p-4">
             <p className="text-sm font-medium text-[var(--zcanopy-card-brown)]">Current Plan: <span className="font-semibold tracking-wide" style={{ color: COLORS.primary }}>{tier.name.toUpperCase()}</span></p>
@@ -925,6 +982,7 @@ export default function BrokerPropertiesPage() {
         </div>
       </div>
 
+      <div id="properties-list" className="scroll-mt-6" />
       {filtered.length === 0 ? (
         <Panel>
           <div className="py-12 text-center">
