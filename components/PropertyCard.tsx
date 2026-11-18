@@ -17,9 +17,11 @@ interface PropertyCardProps {
   brokerBookingFee?: number;
   onBook?: () => void;
   href?: string;
+  /** When false the listing is hidden from the public landing page. */
+  showOnLandingPage?: boolean;
 }
 
-export default function PropertyCard({ id, title, description, propertyType, location, isAvailable, imageUrl, videoUrl, price, brokerBookingFee, onBook, href = `/properties/${id}` }: PropertyCardProps) {
+export default function PropertyCard({ id, title, description, propertyType, location, isAvailable, imageUrl, videoUrl, price, brokerBookingFee, onBook, href = `/properties/${id}`, showOnLandingPage = true }: PropertyCardProps) {
   const images = (imageUrl?.filter(Boolean) || []).map((url) => toCdnUrl(url));
   const videos = (videoUrl?.filter(Boolean) || []).map((url) => toCdnUrl(url));
   const mainImage = images[0] || "https://via.placeholder.com/600x400?text=No+Image";
@@ -58,6 +60,11 @@ export default function PropertyCard({ id, title, description, propertyType, loc
         <span className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide backdrop-blur-sm ${isAvailable ? "bg-white/90 text-emerald-800" : "bg-white/90 text-rose-800"}`}>
           {isAvailable ? "Available" : "Booked"}
         </span>
+        {!showOnLandingPage && (
+          <span className="absolute left-3 top-12 rounded-full bg-amber-500/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur-sm">
+            Hidden
+          </span>
+        )}
         {price !== undefined && (
           <p className="absolute bottom-3 left-3 font-[family-name:var(--font-cormorant)] text-xl font-semibold text-white drop-shadow">
             UGX {price.toLocaleString()}

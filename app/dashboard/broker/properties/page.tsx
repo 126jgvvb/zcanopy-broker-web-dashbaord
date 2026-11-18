@@ -25,6 +25,8 @@ interface Property {
   imageUrl?: string[];
   price?: number;
   brokerBookingFee?: number;
+  /** When false the listing is hidden from the public landing page. */
+  showOnLandingPage?: boolean;
 }
 
 interface TierLimits {

@@ -34,6 +34,8 @@ interface Property {
   price?: number;
   brokerBookingFee?: number;
   postgisSpatialField?: string;
+  /** When false the listing is hidden from the public landing page. */
+  showOnLandingPage?: boolean;
 }
 
 interface TierLimits {
@@ -88,6 +90,7 @@ export default function BrokerPropertyDetailPage() {
   const [showMakeAvailableConfirm, setShowMakeAvailableConfirm] = useState(false);
   const [makingAvailable, setMakingAvailable] = useState(false);
   const [initializedId, setInitializedId] = useState<string | null>(null);
+  const [visibilityBusy, setVisibilityBusy] = useState(false);
 
   useEffect(() => {
     if (!property || initializedId === id) return;
@@ -162,6 +165,28 @@ export default function BrokerPropertyDetailPage() {
       // ignore
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleToggleVisibility = async () => {
+    const token = localStorage.getItem('zcanopy_token');
+    if (!token || !property) return;
+    const nextShow = property.showOnLandingPage === false ? true : false;
+    setVisibilityBusy(true);
+    try {
+      await webApi.brokerUpdatePropertyVisibility(token, property.id, nextShow);
+      updateCachedProperty({ showOnLandingPage: nextShow });
+      await revalidateProperties();
+      setMediaDialog({
+        type: 'success',
+        message: nextShow
+          ? 'Property is now visible on the landing page.'
+          : 'Property hidden from the landing page. It stays in your console.',
+      });
+    } catch {
+      setMediaDialog({ type: 'error', message: 'Failed to update visibility. Please try again.' });
+    } finally {
+      setVisibilityBusy(false);
     }
   };
 
@@ -300,6 +325,17 @@ export default function BrokerPropertyDetailPage() {
           </div>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={handleToggleVisibility}
+            disabled={visibilityBusy}
+            className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:border-amber-300 hover:bg-amber-50 hover:text-amber-900 disabled:opacity-50"
+          >
+            {visibilityBusy
+              ? 'Saving…'
+              : property.showOnLandingPage === false
+                ? 'Show on landing page'
+                : 'Hide from landing page'}
+          </button>
           <button
             onClick={() => setEditing(!editing)}
             className="rounded-xl bg-[var(--zcanopy-primary)] px-5 py-2.5 text-sm font-semibold tracking-wide text-white shadow-[0_10px_24px_-12px_rgba(169,113,14,0.85)] transition-all hover:bg-[var(--zcanopy-primary-alt)]"
@@ -721,6 +757,14 @@ export default function BrokerPropertyDetailPage() {
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${property.isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                   {property.isAvailable ? 'Available' : 'Booked'}
                 </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-gray-500">Landing page</span>
+                {property.showOnLandingPage === false ? (
+                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Hidden</span>
+                ) : (
+                  <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800">Visible</span>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Price</span>

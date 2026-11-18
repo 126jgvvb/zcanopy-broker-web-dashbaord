@@ -484,6 +484,11 @@ export const webApi = {
   brokerUpdatePropertyAvailability: (token: string, id: string, isAvailable: boolean) =>
     apiFetch(`/web/broker/properties/${id}/availability`, { method: 'PUT', token, body: { isAvailable } }),
 
+  // Toggle whether the listing is shown on the public landing page. The
+  // property stays visible in the broker console either way.
+  brokerUpdatePropertyVisibility: (token: string, id: string, showOnLandingPage: boolean) =>
+    apiFetch(`/web/broker/properties/${id}`, { method: 'PUT', token, body: { showOnLandingPage } }),
+
   deleteProperty: (token: string, id: string) =>
     apiFetch(`/web/broker/properties/${id}`, { method: 'DELETE', token}),
 
