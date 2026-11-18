@@ -51,7 +51,6 @@ export default function BrokerSettingsPage() {
     try {
       await webApi.brokerUpdateProfile(token, {
         username: form.fullName,
-        email: form.email,
         phoneNumber: form.phone,
       });
       setSuccessDialog({ open: true, title: 'Profile Updated', message: 'Your profile has been updated successfully.' });
@@ -169,12 +168,13 @@ export default function BrokerSettingsPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
-            />
+            <div
+              className="w-full truncate rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5 text-sm text-gray-600 select-all"
+              aria-label="Email address (read-only)"
+            >
+              {form.email || '—'}
+            </div>
+            <p className="mt-1 text-xs text-gray-400">Your email cannot be changed here.</p>
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone Number</label>
