@@ -23,6 +23,19 @@ interface Notification {
   read: boolean;
 }
 
+function stripHtml(value: string): string {
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function BrokerNotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +52,8 @@ export default function BrokerNotificationsPage() {
         const items = (data.notifications || []).map((n: any) => ({
           id: n.id || n.notificationId || Math.random().toString(),
           type: n.type || n.channel || 'system',
-          title: n.title || n.message || 'Notification',
-          message: n.message || n.title || '',
+          title: n.title || n.content || 'Notification',
+          message: stripHtml(n.content || n.message || n.title || ''),
           time: n.createdAt || n.time || '',
           read: n.read || false,
         }));
