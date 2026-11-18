@@ -15,7 +15,7 @@ export default function BrokerSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [successDialog, setSuccessDialog] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
-  const [form, setForm] = useState({ fullName: '', email: '', phone: '', location: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', phone: '' });
   const [passwordForm, setPasswordForm] = useState({ current: '', newPassword: '', confirm: '' });
   const [otpSent, setOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState('');
@@ -37,7 +37,6 @@ export default function BrokerSettingsPage() {
           fullName: broker.username || broker.fullName || '',
           email: broker.email || '',
           phone: broker.phoneNumber || '',
-          location: broker.location || '',
         });
       })
       .catch(() => setError('Failed to load profile'))
@@ -54,7 +53,6 @@ export default function BrokerSettingsPage() {
         username: form.fullName,
         email: form.email,
         phoneNumber: form.phone,
-        location: form.location,
       });
       setSuccessDialog({ open: true, title: 'Profile Updated', message: 'Your profile has been updated successfully.' });
     } catch {
@@ -184,15 +182,6 @@ export default function BrokerSettingsPage() {
               type="tel"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Location</label>
-            <input
-              type="text"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm transition-colors focus:border-[var(--zcanopy-primary)] focus:outline-none"
             />
           </div>
