@@ -83,6 +83,8 @@ export default function BrokerPropertyDetailPage() {
   const [mediaDialog, setMediaDialog] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [videoUploading, setVideoUploading] = useState(false);
+  // 0-100; fed by the uploader's progress events.
+  const [videoProgress, setVideoProgress] = useState(0);
   const [showMakeAvailableConfirm, setShowMakeAvailableConfirm] = useState(false);
   const [makingAvailable, setMakingAvailable] = useState(false);
   const [initializedId, setInitializedId] = useState<string | null>(null);
@@ -230,6 +232,7 @@ export default function BrokerPropertyDetailPage() {
       return;
     }
     setVideoUploading(true);
+    setVideoProgress(0);
     // Extract the poster in the background so a slow decode never delays the
     // uploaded video appearing in the preview.
     // The poster encoder is only needed while uploading a video.
@@ -237,7 +240,7 @@ export default function BrokerPropertyDetailPage() {
       .then((m) => m.createVideoPoster(file))
       .catch(() => null);
     try {
-      const url = await uploadToSpaces(file, 'properties');
+      const url = await uploadToSpaces(file, 'properties', setVideoProgress);
       setVideos((prev) => [...prev, url]);
       setVideoUploading(false);
       const poster = await posterPromise;
@@ -581,9 +584,28 @@ export default function BrokerPropertyDetailPage() {
 
           <Panel title={`Videos (${videos.length}/${tier.limits.maxVideosPerProperty})`}>
             {videoUploading ? (
-              <div className="py-12 text-center">
-                <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-[var(--zcanopy-primary)] border-t-transparent"></div>
-                <p className="text-sm text-gray-600">Uploading video...</p>
+              <div className="rounded-xl border border-[var(--zcanopy-border)] bg-[var(--zcanopy-table-head)] p-4 sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-[var(--zcanopy-card-brown)]">
+                    {videoProgress >= 100 ? 'Finalising video…' : `Uploading video… ${videoProgress}%`}
+                  </span>
+                  <span className="font-mono text-xs text-gray-500">{Math.min(videoProgress, 100)}%</span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full rounded-full bg-[var(--zcanopy-primary)] transition-[width] duration-200 ease-out"
+                    style={{ width: `${Math.min(videoProgress, 100)}%` }}
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.min(videoProgress, 100)}
+                    aria-label="Video upload progress"
+                  />
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-[var(--zcanopy-muted)]">
+                  Video uploads are slow on the web, especially on mobile data. For faster and more reliable
+                  uploads, use the ZCanopy mobile app — you can record and publish a listing directly from it.
+                </p>
               </div>
             ) : videos.length > 0 ? (
               <div className="space-y-4">

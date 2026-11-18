@@ -133,7 +133,46 @@ async function waitForVideoTranscode(key: string, fallbackUrl: string): Promise<
   return fallbackUrl;
 }
 
-export async function uploadToSpaces(file: File, folder = 'properties'): Promise<string> {
+/**
+ * PUT the file with upload progress callbacks. Uses XMLHttpRequest because
+ * fetch does not surface upload progress in the browser. Network failures
+ * reject with a TypeError carrying "fetch" so the caller's fallback
+ * detection (proxy upload) keeps working.
+ */
+function putWithProgress(
+  url: string,
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url, true);
+    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.timeout = 10 * 60 * 1000; // 10 minutes for very large videos
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        onProgress(Math.min(100, Math.max(0, Math.round((event.loaded / event.total) * 100))));
+      }
+    };
+    xhr.upload.onload = () => onProgress(100);
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new TypeError('fetch failed'));
+    xhr.ontimeout = () => reject(new TypeError('fetch failed'));
+    xhr.send(file);
+  });
+}
+
+export async function uploadToSpaces(
+  file: File,
+  folder = 'properties',
+  onProgress?: (percent: number) => void,
+): Promise<string> {
   // Compress/resize phone captures (and convert to WebP) before they leave the
   // device. Videos pass through unchanged; their poster frame is generated
   // separately for previews.
@@ -152,16 +191,20 @@ export async function uploadToSpaces(file: File, folder = 'properties'): Promise
       throw new Error('Missing upload URL from presign response');
     }
 
-    const res = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: uploadFile,
-      headers: {
-        'Content-Type': uploadFile.type,
-      },
-    });
+    if (onProgress) {
+      await putWithProgress(uploadUrl, uploadFile, onProgress);
+    } else {
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: uploadFile,
+        headers: {
+          'Content-Type': uploadFile.type,
+        },
+      });
 
-    if (!res.ok) {
-      throw new Error(`Upload failed: ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`Upload failed: ${res.status}`);
+      }
     }
 
     // Phone videos are often 15-30 MB with an unbounded bitrate, which buffers
